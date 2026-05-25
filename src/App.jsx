@@ -51,6 +51,26 @@ function formatTime(ms, withTenths = false) {
   return withTenths ? `${base}.${tenths}` : base
 }
 
+function buildWhatsAppUrl(result) {
+  const canary = result.canaryName || 'Canário sem nome'
+  const date = new Date(result.date).toLocaleString('pt-BR')
+  const message = [
+    '🏆 Resultado - Tropa dos Belgas',
+    '',
+    `Canário: ${canary}`,
+    `Data: ${date}`,
+    `Duração da prova: ${formatTime(result.durationMs)}`,
+    `Tempo total cantado: ${formatTime(result.sungMs, true)}`,
+    `Aproveitamento: ${result.percent.toFixed(1)}%`,
+    `Maior sequência: ${formatTime(result.longestMs, true)}`,
+    `Entradas de canto: ${result.entries}`,
+    '',
+    'Cronometrado pelo app Tropa dos Belgas.'
+  ].join('\n')
+
+  return `https://wa.me/?text=${encodeURIComponent(message)}`
+}
+
 function vibrate(pattern) {
   if ('vibrate' in navigator) navigator.vibrate(pattern)
 }
@@ -343,9 +363,19 @@ export default function App() {
               <StatCard label="Maior sequência" value={formatTime(lastResult.longestMs, true)} />
               <StatCard label="Entradas" value={lastResult.entries} />
             </div>
-            <button type="button" onClick={() => resetTrial()} className="mt-4 w-full rounded-lg bg-yellow-300 px-4 py-4 text-lg font-black text-slate-950">
-              Nova prova
-            </button>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <a
+                href={buildWhatsAppUrl(lastResult)}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg bg-emerald-500 px-4 py-4 text-center text-lg font-black text-slate-950"
+              >
+                Compartilhar no WhatsApp
+              </a>
+              <button type="button" onClick={() => resetTrial()} className="rounded-lg bg-yellow-300 px-4 py-4 text-lg font-black text-slate-950">
+                Nova prova
+              </button>
+            </div>
           </section>
         )}
 
@@ -416,6 +446,14 @@ export default function App() {
                   <p>Maior seq.: <strong className="text-white">{formatTime(item.longestMs, true)}</strong></p>
                   <p>Entradas: <strong className="text-white">{item.entries}</strong></p>
                 </div>
+                <a
+                  href={buildWhatsAppUrl(item)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block rounded-lg bg-emerald-500 px-4 py-3 text-center text-sm font-black text-slate-950"
+                >
+                  Compartilhar no WhatsApp
+                </a>
               </article>
             ))}
           </div>
