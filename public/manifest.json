@@ -2,8 +2,8 @@
   "name": "Tropa dos Belgas",
   "short_name": "Tropa JF",
   "description": "Cronometro de canto canario belga",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "/App_Canario_Belga_Tropa_JF/",
+  "scope": "/App_Canario_Belga_Tropa_JF/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#020617",
@@ -11,7 +11,7 @@
   "categories": ["sports", "utilities"],
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "/App_Canario_Belga_Tropa_JF/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
