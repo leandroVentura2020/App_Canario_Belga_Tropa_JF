@@ -370,7 +370,7 @@ export default function App() {
                 rel="noreferrer"
                 className="rounded-lg bg-emerald-500 px-4 py-4 text-center text-lg font-black text-slate-950"
               >
-                Compartilhar no WhatsApp
+                Enviar resultado ao chefe de roda
               </a>
               <button type="button" onClick={() => resetTrial()} className="rounded-lg bg-yellow-300 px-4 py-4 text-lg font-black text-slate-950">
                 Nova prova
@@ -452,7 +452,7 @@ export default function App() {
                   rel="noreferrer"
                   className="mt-3 block rounded-lg bg-emerald-500 px-4 py-3 text-center text-sm font-black text-slate-950"
                 >
-                  Compartilhar no WhatsApp
+                  Enviar resultado ao chefe de roda
                 </a>
               </article>
             ))}
