@@ -458,6 +458,10 @@ export default function App() {
             ))}
           </div>
         </section>
+
+        <footer className="pb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Desenvolvido por Leandro Ventura
+        </footer>
       </div>
     </main>
   )
