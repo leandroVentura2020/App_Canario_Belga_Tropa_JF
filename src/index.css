@@ -48,7 +48,7 @@ button {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 6mm;
   }
 
   body {
@@ -95,7 +95,7 @@ button {
       linear-gradient(#ffffff, #fffdf7);
     color: #111827;
     font-family: Arial, Helvetica, sans-serif;
-    padding: 6mm 8mm 7mm;
+    padding: 4mm 6mm 5mm;
   }
 
   .print-report > :not(.print-watermark) {
@@ -131,13 +131,61 @@ button {
     display: grid;
     justify-items: center;
     padding-top: 1mm;
+    position: relative;
     text-align: center;
   }
 
+  .print-header-canary {
+    position: absolute;
+    top: 20px;
+    width: 74px;
+    height: 96px;
+    object-fit: contain;
+  }
+
+  .print-header-canary-left {
+    left: 30px;
+    transform: scaleX(-1);
+  }
+
+  .print-header-canary-right {
+    right: 30px;
+  }
+
+  .print-rule-ribbon {
+    position: relative;
+    min-width: 300px;
+    margin-bottom: 3px;
+    background: linear-gradient(90deg, #b87905, #ffd84a 35%, #ffeaa0 50%, #ffd84a 65%, #b87905);
+    border-radius: 3px;
+    padding: 4px 20px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+  }
+
+  .print-rule-ribbon::before,
+  .print-rule-ribbon::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 64px;
+    border-top: 2px solid #d8a11f;
+  }
+
+  .print-rule-ribbon::before {
+    right: calc(100% + 10px);
+  }
+
+  .print-rule-ribbon::after {
+    left: calc(100% + 10px);
+  }
+
   .print-wing {
-    width: 126px;
-    height: 48px;
-    margin-bottom: 4px;
+    width: 98px;
+    height: 34px;
+    margin-bottom: 2px;
     background: linear-gradient(135deg, #f8d66d, #b87905);
     clip-path: polygon(0 75%, 100% 0, 82% 32%, 100% 38%, 76% 58%, 95% 66%, 52% 78%, 88% 92%, 12% 100%);
   }
@@ -145,7 +193,7 @@ button {
   .print-header h1 {
     margin: 0;
     color: #c48708;
-    font-size: 48px;
+    font-size: 40px;
     font-weight: 900;
     letter-spacing: 0.02em;
     line-height: 0.95;
@@ -155,16 +203,16 @@ button {
   .print-header p {
     margin: 0;
     color: #7c4d06;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 900;
     letter-spacing: 0.14em;
   }
 
   .print-header h2 {
     position: relative;
-    margin: 8px 0 7px;
+    margin: 5px 0 5px;
     color: #111827;
-    font-size: 31px;
+    font-size: 25px;
     font-weight: 900;
     letter-spacing: 0.02em;
   }
@@ -175,7 +223,7 @@ button {
     position: absolute;
     top: 3px;
     color: #d8a11f;
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .print-header h2::before {
@@ -188,12 +236,12 @@ button {
 
   .print-ribbon {
     position: relative;
-    min-width: 390px;
+    min-width: 330px;
     background: linear-gradient(90deg, #b87905, #ffd84a, #b87905);
     border-radius: 4px;
-    padding: 7px 32px;
+    padding: 5px 28px;
     color: #111827;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: 0.08em;
   }
@@ -223,13 +271,13 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 28px;
+    gap: 22px;
     width: 100%;
-    margin: 10px 0 12px;
+    margin: 7px 0 8px;
     border-bottom: 2px solid #d8a11f;
-    padding: 0 0 10px;
+    padding: 0 0 7px;
     color: #111827;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 900;
   }
 
@@ -246,10 +294,10 @@ button {
   .print-champion-title {
     background: linear-gradient(90deg, #ffd84a, #fff2a6, #ffd84a);
     border-bottom: 1px solid #d8a11f;
-    padding: 9px 14px;
+    padding: 6px 12px;
     color: #111827;
     text-align: center;
-    font-size: 17px;
+    font-size: 14px;
     font-weight: 900;
     letter-spacing: 0.04em;
   }
@@ -265,15 +313,15 @@ button {
     grid-template-columns: 1.75fr repeat(4, 1fr);
     gap: 0;
     align-items: center;
-    padding: 12px 18px 14px;
+    padding: 8px 14px 9px;
   }
 
   .print-champion-grid > div {
-    min-height: 52px;
+    min-height: 40px;
     display: grid;
     align-content: center;
     border-left: 2px solid #d8a11f;
-    padding: 0 14px;
+    padding: 0 10px;
     text-align: center;
   }
 
@@ -284,25 +332,23 @@ button {
 
   .print-champion-name {
     position: relative;
-    padding-left: 54px !important;
+    padding-left: 46px !important;
   }
 
-  .print-champion-name::before {
-    content: "🐤";
+  .print-canary-icon {
     position: absolute;
-    left: 0;
-    top: 7px;
-    width: 44px;
-    height: 44px;
-    color: #d8a11f;
-    font-size: 39px;
-    line-height: 1;
+    left: -2px;
+    top: 1px;
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
   }
 
   .print-champion h2 {
     margin: 3px 0 0;
     color: #111827;
-    font-size: 30px;
+    font-size: 23px;
     font-weight: 900;
     line-height: 1;
   }
@@ -310,7 +356,7 @@ button {
   .print-champion-grid span {
     display: block;
     color: #111827;
-    font-size: 9px;
+    font-size: 7px;
     font-weight: 900;
     text-transform: uppercase;
   }
@@ -319,7 +365,7 @@ button {
     display: block;
     margin-top: 4px;
     color: #111827;
-    font-size: 22px;
+    font-size: 17px;
     font-weight: 900;
     line-height: 1;
   }
@@ -335,16 +381,16 @@ button {
   .print-table-title {
     display: grid;
     justify-items: center;
-    margin-top: 12px;
+    margin-top: 8px;
     border: 0;
-    padding: 8px 10px 6px;
+    padding: 5px 10px 4px;
     color: #111827;
     break-after: avoid;
   }
 
   .print-table-title span {
     position: relative;
-    font-size: 25px;
+    font-size: 21px;
     font-weight: 900;
     letter-spacing: 0.04em;
   }
@@ -368,7 +414,7 @@ button {
 
   .print-table-title strong {
     color: #7c4d06;
-    font-size: 12px;
+    font-size: 9px;
     letter-spacing: 0.12em;
   }
 
@@ -381,7 +427,7 @@ button {
     border: 1px solid #d7dce5;
     border: 2px solid #d8a11f;
     border-radius: 7px;
-    font-size: 12px;
+    font-size: 10px;
     break-inside: auto;
   }
 
@@ -397,16 +443,16 @@ button {
     background: #ffd84a;
     color: #111827;
     border-right: 1px solid #d8a11f;
-    padding: 9px 8px;
+    padding: 5px 6px;
     text-align: center;
-    font-size: 10px;
+    font-size: 8px;
     letter-spacing: 0.04em;
   }
 
   .print-table td {
     border-right: 1px solid #d8a11f;
     border-bottom: 1px solid #d8a11f;
-    padding: 9px 8px;
+    padding: 4px 6px;
     text-align: center;
     font-weight: 800;
   }
@@ -421,55 +467,60 @@ button {
   }
 
   .print-table td:first-child {
-    width: 48px;
+    width: 38px;
   }
 
   .print-table td:nth-child(2) {
     text-align: left;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 900;
   }
 
   .print-position {
     display: inline-grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
+    width: 19px;
+    height: 19px;
     border-radius: 999px;
-    background: #f3f4f6;
+    border: 1px solid #d8a11f;
+    background: #ffffff;
     color: #111827;
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 900;
+    line-height: 1;
   }
 
   .print-position-1 {
     background: #ffd84a;
+    border-color: #b87905;
   }
 
   .print-position-2 {
     background: #e5e7eb;
+    border-color: #9ca3af;
   }
 
   .print-position-3 {
     background: #fb923c;
+    border-color: #c2410c;
   }
 
   .print-footer {
     display: grid;
-    grid-template-columns: 1fr 70px 1fr;
+    grid-template-columns: 1fr 58px 1fr;
     align-items: end;
-    gap: 36px;
-    margin-top: 14px;
+    gap: 40px;
+    margin-top: 11px;
     border: 2px solid #d8a11f;
     border-radius: 9px;
-    padding: 48px 32px 9px;
+    padding: 40px 34px 9px;
     position: relative;
     break-inside: avoid;
   }
 
   .print-footer-title {
     position: absolute;
-    top: 7px;
+    top: 6px;
     left: 0;
     right: 0;
     display: grid;
@@ -480,21 +531,20 @@ button {
   }
 
   .print-footer-title span {
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: 0.12em;
   }
 
   .print-footer-title strong {
     color: #d8a11f;
-    font-size: 30px;
+    font-size: 25px;
     font-weight: 900;
     letter-spacing: 0.03em;
     text-shadow: 0 1px 0 #7c4d06;
   }
 
-  .print-footer::before,
-  .print-footer::after {
+  .print-footer::before {
     position: absolute;
     top: 20px;
     color: #d8a11f;
@@ -506,35 +556,60 @@ button {
     left: 28px;
   }
 
-  .print-footer::after {
-    content: "🐤";
-    right: 28px;
-  }
-
   .print-footer span {
     display: block;
     border-top: 1px solid #111827;
   }
 
-  .print-footer img {
-    width: 56px;
-    height: 56px;
+  .print-footer-logo {
+    width: 46px;
+    height: 46px;
     justify-self: center;
     align-self: center;
   }
 
+  .print-footer-canary {
+    position: absolute;
+    top: 15px;
+    right: 26px;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+
+  .print-canary-icon,
+  .print-footer-canary {
+    mix-blend-mode: normal;
+  }
+
+  .print-footer::before {
+    content: none;
+    display: none;
+  }
+
+  .print-footer-canary-left {
+    left: 26px;
+    right: auto;
+    transform: scaleX(-1);
+  }
+
+  .print-footer-canary-right {
+    right: 26px;
+  }
+
   .print-footer p {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     text-align: center;
-    font-size: 12px;
+    font-size: 9px;
     font-weight: 800;
   }
 
   .print-dev {
-    margin: 6px 0 0;
+    margin: 5px 0 0;
     color: #374151;
     text-align: center;
-    font-size: 11px;
+    font-size: 8px;
     font-weight: 700;
   }
 }

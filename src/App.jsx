@@ -223,6 +223,9 @@ function ChampionReport({ champion, championRanking }) {
         <span>TROPA DOS BELGAS JF</span>
       </div>
       <header className="print-header">
+        <div className="print-rule-ribbon">PADRAO E REGRA FOB</div>
+        <img className="print-header-canary print-header-canary-left" src={`${ASSET_BASE}canary-icon-transparent.png`} alt="" />
+        <img className="print-header-canary print-header-canary-right" src={`${ASSET_BASE}canary-icon-transparent.png`} alt="" />
         <div className="print-wing"></div>
         <h1>TROPA DOS BELGAS</h1>
         <p>DESDE 2018 - TROPA JF</p>
@@ -240,6 +243,7 @@ function ChampionReport({ champion, championRanking }) {
           <div className="print-champion-title">CAMPEAO DA RODA</div>
           <div className="print-champion-grid">
             <div className="print-champion-name">
+              <img className="print-canary-icon" src={`${ASSET_BASE}canary-icon-transparent.png`} alt="" />
               <span>Canario</span>
               <h2>{champion.canaryName}</h2>
             </div>
@@ -304,11 +308,13 @@ function ChampionReport({ champion, championRanking }) {
           <span></span>
           <p>Chefe de roda</p>
         </div>
-        <img src={`${ASSET_BASE}icon.svg`} alt="" />
+        <img className="print-footer-canary print-footer-canary-left" src={`${ASSET_BASE}canary-icon-transparent.png`} alt="" />
+        <img className="print-footer-logo" src={`${ASSET_BASE}icon.svg`} alt="" />
         <div>
           <span></span>
           <p>Organizacao</p>
         </div>
+        <img className="print-footer-canary print-footer-canary-right" src={`${ASSET_BASE}canary-icon-transparent.png`} alt="" />
       </footer>
 
       <p className="print-dev">Gerado pelo app Tropa dos Belgas - Desenvolvido por Leandro Ventura</p>

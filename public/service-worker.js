@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tropa-dos-belgas-v6'
-const APP_SHELL = ['', 'index.html', 'manifest.json', 'icon.svg', 'logo.svg']
+const CACHE_NAME = 'tropa-dos-belgas-v7'
+const APP_SHELL = ['', 'index.html', 'manifest.json', 'icon.svg', 'logo.svg', 'canary-icon.png', 'canary-icon-transparent.png']
 
 function fromScope(path) {
   return new URL(path, self.registration.scope).toString()
