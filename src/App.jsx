@@ -16,6 +16,8 @@ const HISTORY_LIMIT = 300
 const SETTINGS_KEY = 'belga-timer-settings'
 const HISTORY_KEY = 'belga-timer-history'
 const RANKING_KEY = 'belga-timer-ranking'
+const CHIEF_ACCESS_KEY = 'belga-timer-chief-access'
+const CHIEF_ACCESS_CODE = 'TROPAJF2026'
 
 function loadSettings() {
   try {
@@ -49,6 +51,14 @@ function loadRanking() {
     return JSON.parse(localStorage.getItem(RANKING_KEY)) || []
   } catch {
     return []
+  }
+}
+
+function loadChiefAccess() {
+  try {
+    return localStorage.getItem(CHIEF_ACCESS_KEY) === 'granted'
+  } catch {
+    return false
   }
 }
 
@@ -619,7 +629,7 @@ function RankingPanel({ ranking, setRanking, history }) {
                       disabled={alreadySent}
                       className={`rounded-md px-3 py-2 text-xs font-black ${alreadySent ? 'cursor-not-allowed bg-slate-700 text-slate-300' : 'bg-emerald-500 text-slate-950'}`}
                     >
-                      {alreadySent ? 'Ja enviado' : 'Enviar para TV'}
+                      {alreadySent ? 'Ja enviado' : 'Enviar ao painel'}
                     </button>
                   </div>
                 </article>
@@ -742,6 +752,7 @@ export default function App() {
   const [canaryName, setCanaryName] = useState('')
   const [history, setHistory] = useState(loadHistory)
   const [ranking, setRanking] = useState(loadRanking)
+  const [chiefAccessGranted, setChiefAccessGranted] = useState(loadChiefAccess)
 
   const durationRef = useRef(durationMs)
   const statusRef = useRef(status)
@@ -754,6 +765,8 @@ export default function App() {
   const lastTickRef = useRef(null)
   const singingStartRef = useRef(null)
   const finishSavedRef = useRef(false)
+  const wakeLockRef = useRef(null)
+  const wakeLockRequestRef = useRef(false)
 
   useEffect(() => {
     durationRef.current = durationMs
@@ -803,6 +816,34 @@ export default function App() {
     return () => window.clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    async function keepScreenAwake() {
+      if (status !== 'running') {
+        releaseWakeLock()
+        return
+      }
+
+      await requestWakeLock()
+    }
+
+    keepScreenAwake()
+
+    return () => {
+      if (status !== 'running') releaseWakeLock()
+    }
+  }, [status])
+
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && statusRef.current === 'running') {
+        requestWakeLock()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   const currentSungMs = status === 'running' && isSinging && singingStartRef.current
     ? sungMs + (performance.now() - singingStartRef.current)
     : sungMs
@@ -814,6 +855,7 @@ export default function App() {
     if (status === 'finished') resetTrial()
     lastTickRef.current = performance.now()
     setStatus('running')
+    requestWakeLock()
   }
 
   function pauseTrial() {
@@ -821,9 +863,11 @@ export default function App() {
     const now = performance.now()
     if (singingRef.current) closeSingingSegment(now, true)
     setStatus('paused')
+    releaseWakeLock()
   }
 
   function resetTrial(nextDuration = durationRef.current) {
+    releaseWakeLock()
     setStatus('idle')
     setRemainingMs(nextDuration)
     setSungMs(0)
@@ -873,6 +917,7 @@ export default function App() {
     if (finishSavedRef.current) return
     finishSavedRef.current = true
     if (singingRef.current) closeSingingSegment(now, true)
+    releaseWakeLock()
 
     const total = sungRef.current
     const result = {
@@ -891,6 +936,35 @@ export default function App() {
     setHistory((current) => [result, ...current].slice(0, HISTORY_LIMIT))
     playFinishBeep()
     vibrate([180, 80, 180])
+  }
+
+  async function requestWakeLock() {
+    try {
+      if (!('wakeLock' in navigator) || wakeLockRef.current || wakeLockRequestRef.current || document.visibilityState !== 'visible') return
+
+      wakeLockRequestRef.current = true
+      wakeLockRef.current = await navigator.wakeLock.request('screen')
+      wakeLockRequestRef.current = false
+      wakeLockRef.current.addEventListener('release', () => {
+        wakeLockRef.current = null
+      })
+    } catch {
+      wakeLockRequestRef.current = false
+      wakeLockRef.current = null
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      wakeLockRequestRef.current = false
+      if (!wakeLockRef.current) return
+
+      const lock = wakeLockRef.current
+      wakeLockRef.current = null
+      await lock.release()
+    } catch {
+      wakeLockRef.current = null
+    }
   }
 
   function changeDuration(value) {
@@ -922,6 +996,27 @@ export default function App() {
         ...current
       ])
     })
+  }
+
+  function openChiefPanel() {
+    if (!canOpenRanking) return
+
+    if (chiefAccessGranted) {
+      setViewMode('ranking')
+      return
+    }
+
+    const code = window.prompt('Digite o codigo do Chefe de Roda:')
+    if (!code) return
+
+    if (code.trim().toUpperCase() !== CHIEF_ACCESS_CODE) {
+      window.alert('Codigo incorreto. A area Chefe de Roda e liberada somente para responsaveis.')
+      return
+    }
+
+    localStorage.setItem(CHIEF_ACCESS_KEY, 'granted')
+    setChiefAccessGranted(true)
+    setViewMode('ranking')
   }
 
   const lastResult = history[0]
@@ -971,9 +1066,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (canOpenRanking) setViewMode('ranking')
-              }}
+              onClick={openChiefPanel}
               disabled={!canOpenRanking}
               className={`rounded-md px-4 py-3 text-sm font-black uppercase ${
                 viewMode === 'ranking'
@@ -983,7 +1076,7 @@ export default function App() {
                     : 'cursor-not-allowed text-slate-600 opacity-50'
               }`}
             >
-              Classificacao TV
+              Chefe de Roda
             </button>
           </div>
         </header>
@@ -1076,14 +1169,16 @@ export default function App() {
                 Nova prova
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => addResultToRanking(lastResult)}
-              disabled={lastResultInRanking}
-              className={`mt-3 w-full rounded-lg border px-4 py-4 text-lg font-black ${lastResultInRanking ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
-            >
-              {lastResultInRanking ? 'Resultado ja esta na classificacao' : 'Enviar para classificacao TV'}
-            </button>
+            {chiefAccessGranted && (
+              <button
+                type="button"
+                onClick={() => addResultToRanking(lastResult)}
+                disabled={lastResultInRanking}
+                className={`mt-3 w-full rounded-lg border px-4 py-4 text-lg font-black ${lastResultInRanking ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
+              >
+                {lastResultInRanking ? 'Resultado ja esta na classificacao' : 'Enviar ao painel do chefe'}
+              </button>
+            )}
           </section>
         )}
 
@@ -1162,14 +1257,16 @@ export default function App() {
                 >
                   Enviar resultado ao chefe de roda
                 </a>
-                <button
-                  type="button"
-                  onClick={() => addResultToRanking(item)}
-                  disabled={isResultInRanking(ranking, item)}
-                  className={`mt-3 w-full rounded-lg border px-4 py-3 text-center text-sm font-black ${isResultInRanking(ranking, item) ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
-                >
-                  {isResultInRanking(ranking, item) ? 'Resultado ja esta na classificacao' : 'Enviar para classificacao TV'}
-                </button>
+                {chiefAccessGranted && (
+                  <button
+                    type="button"
+                    onClick={() => addResultToRanking(item)}
+                    disabled={isResultInRanking(ranking, item)}
+                    className={`mt-3 w-full rounded-lg border px-4 py-3 text-center text-sm font-black ${isResultInRanking(ranking, item) ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
+                  >
+                    {isResultInRanking(ranking, item) ? 'Resultado ja esta na classificacao' : 'Enviar ao painel do chefe'}
+                  </button>
+                )}
               </article>
             ))}
           </div>
