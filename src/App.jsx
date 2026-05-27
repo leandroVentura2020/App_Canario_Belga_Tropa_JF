@@ -218,8 +218,10 @@ function ChampionReport({ champion, championRanking }) {
 
   return (
     <section className="print-report">
-      <div className="print-frame-corner print-frame-corner-left"></div>
-      <div className="print-frame-corner print-frame-corner-right"></div>
+      <div className="print-watermark">
+        <img src={`${ASSET_BASE}icon.svg`} alt="" />
+        <span>TROPA DOS BELGAS JF</span>
+      </div>
       <header className="print-header">
         <div className="print-wing"></div>
         <h1>TROPA DOS BELGAS</h1>
