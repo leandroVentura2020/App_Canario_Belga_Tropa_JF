@@ -17,6 +17,7 @@ const SETTINGS_KEY = 'belga-timer-settings'
 const HISTORY_KEY = 'belga-timer-history'
 const RANKING_KEY = 'belga-timer-ranking'
 const CHIEF_ACCESS_KEY = 'belga-timer-chief-access'
+const WHATSAPP_SENT_KEY = 'belga-timer-whatsapp-sent'
 const CHIEF_ACCESS_CODE = 'TROPAJF2026'
 
 function loadSettings() {
@@ -59,6 +60,14 @@ function loadChiefAccess() {
     return localStorage.getItem(CHIEF_ACCESS_KEY) === 'granted'
   } catch {
     return false
+  }
+}
+
+function loadWhatsAppSent() {
+  try {
+    return JSON.parse(localStorage.getItem(WHATSAPP_SENT_KEY)) || []
+  } catch {
+    return []
   }
 }
 
@@ -753,6 +762,10 @@ export default function App() {
   const [history, setHistory] = useState(loadHistory)
   const [ranking, setRanking] = useState(loadRanking)
   const [chiefAccessGranted, setChiefAccessGranted] = useState(loadChiefAccess)
+  const [whatsAppSentIds, setWhatsAppSentIds] = useState(loadWhatsAppSent)
+  const [chiefCode, setChiefCode] = useState('')
+  const [chiefAccessModalOpen, setChiefAccessModalOpen] = useState(false)
+  const [chiefAccessError, setChiefAccessError] = useState('')
 
   const durationRef = useRef(durationMs)
   const statusRef = useRef(status)
@@ -786,6 +799,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
   }, [history])
+
+  useEffect(() => {
+    localStorage.setItem(WHATSAPP_SENT_KEY, JSON.stringify(whatsAppSentIds))
+  }, [whatsAppSentIds])
 
   useEffect(() => {
     const cleaned = dedupeRanking(ranking)
@@ -998,6 +1015,19 @@ export default function App() {
     })
   }
 
+  function whatsAppSentKey(result) {
+    return result.sourceId || result.id
+  }
+
+  function isWhatsAppSent(result) {
+    return whatsAppSentIds.includes(whatsAppSentKey(result))
+  }
+
+  function markWhatsAppSent(result) {
+    const sentKey = whatsAppSentKey(result)
+    setWhatsAppSentIds((current) => current.includes(sentKey) ? current : [sentKey, ...current].slice(0, HISTORY_LIMIT))
+  }
+
   function openChiefPanel() {
     if (!canOpenRanking) return
 
@@ -1006,21 +1036,30 @@ export default function App() {
       return
     }
 
-    const code = window.prompt('Digite o codigo do Chefe de Roda:')
-    if (!code) return
+    setChiefCode('')
+    setChiefAccessError('')
+    setChiefAccessModalOpen(true)
+  }
 
-    if (code.trim().toUpperCase() !== CHIEF_ACCESS_CODE) {
-      window.alert('Codigo incorreto. A area Chefe de Roda e liberada somente para responsaveis.')
+  function submitChiefCode(event) {
+    event.preventDefault()
+
+    if (chiefCode.trim().toUpperCase() !== CHIEF_ACCESS_CODE) {
+      setChiefAccessError('Codigo incorreto. Area liberada somente para responsaveis.')
       return
     }
 
     localStorage.setItem(CHIEF_ACCESS_KEY, 'granted')
     setChiefAccessGranted(true)
+    setChiefAccessModalOpen(false)
+    setChiefCode('')
+    setChiefAccessError('')
     setViewMode('ranking')
   }
 
   const lastResult = history[0]
   const lastResultInRanking = lastResult ? isResultInRanking(ranking, lastResult) : false
+  const lastResultWhatsAppSent = lastResult ? isWhatsAppSent(lastResult) : false
   const canOpenRanking = status === 'idle' || status === 'finished'
   const hasRequiredTrialData = canaryName.trim().length > 0 && durationMs >= 60000
   const canStartTrial = status !== 'running' && hasRequiredTrialData
@@ -1080,6 +1119,61 @@ export default function App() {
             </button>
           </div>
         </header>
+
+        {chiefAccessModalOpen && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 px-4 backdrop-blur-sm">
+            <form onSubmit={submitChiefCode} className="w-full max-w-sm rounded-xl border border-yellow-300/35 bg-slate-950 p-5 shadow-glow">
+              <div className="flex items-center gap-3">
+                <img
+                  src={`${ASSET_BASE}icon.svg`}
+                  alt=""
+                  className="h-12 w-12 rounded-lg border border-yellow-300/30 bg-black object-cover"
+                />
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-yellow-200">Acesso restrito</p>
+                  <h2 className="text-xl font-black text-white">Chefe de Roda</h2>
+                </div>
+              </div>
+
+              <label className="mt-5 grid gap-2">
+                <span className="text-sm font-bold text-slate-300">Digite o codigo para abrir o painel</span>
+                <input
+                  value={chiefCode}
+                  onChange={(event) => {
+                    setChiefCode(event.target.value)
+                    setChiefAccessError('')
+                  }}
+                  autoFocus
+                  inputMode="text"
+                  className="rounded-lg border border-white/10 bg-slate-900 px-4 py-3 text-center text-lg font-black uppercase tracking-widest text-white outline-none focus:border-yellow-300"
+                />
+              </label>
+
+              {chiefAccessError && (
+                <p className="mt-3 rounded-md border border-red-300/30 bg-red-500/15 px-3 py-2 text-sm font-bold text-red-100">
+                  {chiefAccessError}
+                </p>
+              )}
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChiefAccessModalOpen(false)
+                    setChiefCode('')
+                    setChiefAccessError('')
+                  }}
+                  className="rounded-lg border border-white/15 bg-white/10 px-4 py-3 text-sm font-black uppercase text-white"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="rounded-lg bg-yellow-300 px-4 py-3 text-sm font-black uppercase text-slate-950">
+                  Liberar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {viewMode === 'ranking' && (
           <>
@@ -1161,9 +1255,10 @@ export default function App() {
                 href={buildWhatsAppUrl(lastResult)}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg bg-emerald-500 px-4 py-4 text-center text-lg font-black text-slate-950"
+                onClick={() => markWhatsAppSent(lastResult)}
+                className={`rounded-lg px-4 py-4 text-center text-lg font-black ${lastResultWhatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'bg-emerald-500 text-slate-950'}`}
               >
-                Enviar resultado ao chefe de roda
+                {lastResultWhatsAppSent ? 'Resultado enviado com sucesso' : 'Enviar resultado ao chefe de roda'}
               </a>
               <button type="button" onClick={() => resetTrial()} className="rounded-lg bg-yellow-300 px-4 py-4 text-lg font-black text-slate-950">
                 Nova prova
@@ -1234,7 +1329,10 @@ export default function App() {
 
           <div className="mt-4 grid gap-3">
             {history.length === 0 && <p className="text-sm text-slate-400">Nenhuma prova salva ainda.</p>}
-            {history.map((item) => (
+            {history.map((item) => {
+              const whatsAppSent = isWhatsAppSent(item)
+
+              return (
               <article key={item.id} className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -1253,9 +1351,10 @@ export default function App() {
                   href={buildWhatsAppUrl(item)}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 block rounded-lg bg-emerald-500 px-4 py-3 text-center text-sm font-black text-slate-950"
+                  onClick={() => markWhatsAppSent(item)}
+                  className={`mt-3 block rounded-lg px-4 py-3 text-center text-sm font-black ${whatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'bg-emerald-500 text-slate-950'}`}
                 >
-                  Enviar resultado ao chefe de roda
+                  {whatsAppSent ? 'Resultado enviado com sucesso' : 'Enviar resultado ao chefe de roda'}
                 </a>
                 {chiefAccessGranted && (
                   <button
@@ -1268,7 +1367,8 @@ export default function App() {
                   </button>
                 )}
               </article>
-            ))}
+              )
+            })}
           </div>
         </section>
 
