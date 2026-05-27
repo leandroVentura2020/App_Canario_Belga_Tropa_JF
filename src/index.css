@@ -95,34 +95,42 @@ button {
       linear-gradient(#ffffff, #fffdf7);
     color: #111827;
     font-family: Arial, Helvetica, sans-serif;
-    padding: 7mm 8mm 8mm;
+    padding: 6mm 8mm 7mm;
   }
 
-  .print-frame-corner {
+  .print-report > :not(.print-watermark) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .print-watermark {
     position: absolute;
-    top: 8px;
-    width: 86px;
-    height: 54px;
-    border-top: 4px solid #d8a11f;
+    z-index: 0;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    justify-items: center;
+    width: 300px;
+    transform: translate(-50%, -50%);
+    opacity: 0.025;
     pointer-events: none;
   }
 
-  .print-frame-corner-left {
-    left: 10px;
-    border-left: 4px solid #d8a11f;
-    border-top-left-radius: 22px;
+  .print-watermark img {
+    width: 260px;
+    height: 260px;
+    object-fit: contain;
+    filter: grayscale(1) sepia(1) saturate(2.5) hue-rotate(350deg);
   }
 
-  .print-frame-corner-right {
-    right: 10px;
-    border-right: 4px solid #d8a11f;
-    border-top-right-radius: 22px;
+  .print-watermark span {
+    display: none;
   }
 
   .print-header {
     display: grid;
     justify-items: center;
-    padding-top: 2mm;
+    padding-top: 1mm;
     text-align: center;
   }
 
@@ -451,10 +459,10 @@ button {
     grid-template-columns: 1fr 70px 1fr;
     align-items: end;
     gap: 36px;
-    margin-top: 18px;
+    margin-top: 14px;
     border: 2px solid #d8a11f;
     border-radius: 9px;
-    padding: 52px 32px 10px;
+    padding: 48px 32px 9px;
     position: relative;
     break-inside: avoid;
   }
@@ -523,7 +531,7 @@ button {
   }
 
   .print-dev {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: #374151;
     text-align: center;
     font-size: 11px;
