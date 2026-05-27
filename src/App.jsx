@@ -683,6 +683,7 @@ export default function App() {
   const oneMinuteWarning = status === 'running' && remainingMs <= 60000
 
   function startTrial() {
+    if (!canaryNameRef.current.trim() || durationRef.current < 60000) return
     if (status === 'finished') resetTrial()
     lastTickRef.current = performance.now()
     setStatus('running')
@@ -799,6 +800,8 @@ export default function App() {
   const lastResult = history[0]
   const lastResultInRanking = lastResult ? isResultInRanking(ranking, lastResult) : false
   const canOpenRanking = status === 'idle' || status === 'finished'
+  const hasRequiredTrialData = canaryName.trim().length > 0 && durationMs >= 60000
+  const canStartTrial = status !== 'running' && hasRequiredTrialData
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#3b2f16_0,#111827_35%,#020617_78%)] px-4 py-5 text-slate-100 safe-bottom">
@@ -899,7 +902,7 @@ export default function App() {
           </button>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <button type="button" onClick={startTrial} disabled={status === 'running'} className="rounded-lg bg-yellow-300 px-3 py-4 text-sm font-black text-slate-950 disabled:opacity-45">
+            <button type="button" onClick={startTrial} disabled={!canStartTrial} className="rounded-lg bg-yellow-300 px-3 py-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-45">
               INICIAR PROVA
             </button>
             <button type="button" onClick={pauseTrial} disabled={status !== 'running'} className="rounded-lg border border-white/15 bg-white/10 px-3 py-4 text-sm font-black text-white disabled:opacity-45">
@@ -909,6 +912,11 @@ export default function App() {
               ZERAR PROVA
             </button>
           </div>
+          {!hasRequiredTrialData && status !== 'running' && (
+            <p className="mt-3 text-center text-xs font-bold uppercase tracking-wide text-yellow-200">
+              Preencha o nome do canario e o tempo da prova para iniciar
+            </p>
+          )}
         </section>
 
         <section className="grid grid-cols-2 gap-3">
@@ -956,7 +964,7 @@ export default function App() {
           <h2 className="text-lg font-black text-white">Configurações</h2>
           <div className="mt-4 grid gap-4">
             <label className="grid gap-2">
-              <span className="text-sm font-bold text-slate-300">Nome do canário opcional</span>
+              <span className="text-sm font-bold text-slate-300">Nome do canário obrigatório</span>
               <input
                 value={canaryName}
                 onChange={(event) => setCanaryName(event.target.value)}
