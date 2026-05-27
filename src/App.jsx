@@ -213,6 +213,107 @@ function StatCard({ label, value, accent = false }) {
   )
 }
 
+function ChampionReport({ champion, championRanking }) {
+  const generatedAt = new Date()
+
+  return (
+    <section className="print-report">
+      <div className="print-frame-corner print-frame-corner-left"></div>
+      <div className="print-frame-corner print-frame-corner-right"></div>
+      <header className="print-header">
+        <div className="print-wing"></div>
+        <h1>TROPA DOS BELGAS</h1>
+        <p>DESDE 2018 - TROPA JF</p>
+        <h2>RESULTADO FINAL DA RODA</h2>
+        <div className="print-ribbon">CAMPEAO POR TEMPO TOTAL CANTADO</div>
+        <div className="print-info-row">
+          <span>DATA: {generatedAt.toLocaleDateString('pt-BR')}</span>
+          <span>HORA: {generatedAt.toLocaleTimeString('pt-BR')}</span>
+          <span>JUIZ DE FORA MG</span>
+        </div>
+      </header>
+
+      {champion ? (
+        <section className="print-champion">
+          <div className="print-champion-title">CAMPEAO DA RODA</div>
+          <div className="print-champion-grid">
+            <div className="print-champion-name">
+              <span>Canario</span>
+              <h2>{champion.canaryName}</h2>
+            </div>
+            <div>
+              <span>Total geral</span>
+              <strong>{formatTime(champion.totalSungMs, true)}</strong>
+            </div>
+            <div>
+              <span>Provas</span>
+              <strong>{champion.trials}</strong>
+            </div>
+            <div>
+              <span>Melhor prova</span>
+              <strong>{formatTime(champion.bestTrialMs, true)}</strong>
+            </div>
+            <div>
+              <span>Entradas totais</span>
+              <strong>{champion.totalEntries}</strong>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="print-empty">Nenhum resultado adicionado ao painel.</section>
+      )}
+
+      <div className="print-table-title">
+        <span>CLASSIFICACAO GERAL</span>
+        <strong>RESULTADO DO DIA</strong>
+      </div>
+
+      <table className="print-table">
+        <thead>
+          <tr>
+            <th>POS</th>
+            <th>CANARIO</th>
+            <th>TOTAL GERAL</th>
+            <th>PROVAS</th>
+            <th>MELHOR PROVA</th>
+            <th>ENTRADAS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {championRanking.map((item, index) => (
+            <tr key={item.id}>
+              <td><span className={`print-position print-position-${index + 1}`}>{index + 1}</span></td>
+              <td>{item.canaryName}</td>
+              <td>{formatTime(item.totalSungMs, true)}</td>
+              <td>{item.trials}</td>
+              <td>{formatTime(item.bestTrialMs, true)}</td>
+              <td>{item.totalEntries}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <footer className="print-footer">
+        <div className="print-footer-title">
+          <span>TORNEIO CANTO FIBRA</span>
+          <strong>TROPA DOS BELGAS JF</strong>
+        </div>
+        <div>
+          <span></span>
+          <p>Chefe de roda</p>
+        </div>
+        <img src={`${ASSET_BASE}icon.svg`} alt="" />
+        <div>
+          <span></span>
+          <p>Organizacao</p>
+        </div>
+      </footer>
+
+      <p className="print-dev">Gerado pelo app Tropa dos Belgas - Desenvolvido por Leandro Ventura</p>
+    </section>
+  )
+}
+
 function buildChampionRanking(results) {
   const grouped = new Map()
 
@@ -346,7 +447,13 @@ function RankingPanel({ ranking, setRanking, history }) {
     document.documentElement.requestFullscreen?.()
   }
 
+  function printChampionReport() {
+    if (!champion) return
+    window.print()
+  }
+
   return (
+    <>
     <div className="mx-auto grid w-full max-w-7xl gap-5">
       <section className="rounded-lg border border-yellow-300/30 bg-slate-950/80 p-5 shadow-glow">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -555,7 +662,17 @@ function RankingPanel({ ranking, setRanking, history }) {
 
           <aside className="grid gap-5 self-start">
             <section className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 p-5 shadow-glow">
-              <p className="text-sm font-black uppercase tracking-wide text-yellow-200">Campeao da roda</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-black uppercase tracking-wide text-yellow-200">Campeao da roda</p>
+                <button
+                  type="button"
+                  onClick={printChampionReport}
+                  disabled={!champion}
+                  className="rounded-md bg-yellow-300 px-3 py-2 text-xs font-black uppercase text-slate-950 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  Gerar PDF
+                </button>
+              </div>
               {champion ? (
                 <>
                   <h3 className="mt-2 text-4xl font-black text-white">{champion.canaryName}</h3>
@@ -597,6 +714,8 @@ function RankingPanel({ ranking, setRanking, history }) {
         </section>
       )}
     </div>
+    <ChampionReport champion={champion} championRanking={championRanking} />
+    </>
   )
 }
 
@@ -805,7 +924,7 @@ export default function App() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#3b2f16_0,#111827_35%,#020617_78%)] px-4 py-5 text-slate-100 safe-bottom">
-      <div className={`mx-auto flex w-full flex-col gap-5 ${viewMode === 'ranking' ? 'max-w-7xl' : 'max-w-2xl'}`}>
+      <div className={`app-shell mx-auto flex w-full flex-col gap-5 ${viewMode === 'ranking' ? 'max-w-7xl' : 'max-w-2xl'}`}>
         <header className="grid gap-4">
           <div className="overflow-hidden rounded-lg border border-yellow-300/25 bg-black shadow-glow">
             <img

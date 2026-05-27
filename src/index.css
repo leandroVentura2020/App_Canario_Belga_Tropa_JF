@@ -40,3 +40,493 @@ button {
 .safe-bottom {
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
+
+.print-report {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main {
+    min-height: auto !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  .app-shell {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .app-shell > :not(.print-report) {
+    display: none !important;
+  }
+
+  .print-report {
+    display: block;
+    position: relative;
+    width: 100%;
+    min-height: auto;
+    border: 3px solid #d8a11f;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 10% 9%, rgba(216, 161, 31, 0.08), transparent 18%),
+      radial-gradient(circle at 90% 9%, rgba(216, 161, 31, 0.08), transparent 18%),
+      linear-gradient(#ffffff, #fffdf7);
+    color: #111827;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 7mm 8mm 8mm;
+  }
+
+  .print-frame-corner {
+    position: absolute;
+    top: 8px;
+    width: 86px;
+    height: 54px;
+    border-top: 4px solid #d8a11f;
+    pointer-events: none;
+  }
+
+  .print-frame-corner-left {
+    left: 10px;
+    border-left: 4px solid #d8a11f;
+    border-top-left-radius: 22px;
+  }
+
+  .print-frame-corner-right {
+    right: 10px;
+    border-right: 4px solid #d8a11f;
+    border-top-right-radius: 22px;
+  }
+
+  .print-header {
+    display: grid;
+    justify-items: center;
+    padding-top: 2mm;
+    text-align: center;
+  }
+
+  .print-wing {
+    width: 126px;
+    height: 48px;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #f8d66d, #b87905);
+    clip-path: polygon(0 75%, 100% 0, 82% 32%, 100% 38%, 76% 58%, 95% 66%, 52% 78%, 88% 92%, 12% 100%);
+  }
+
+  .print-header h1 {
+    margin: 0;
+    color: #c48708;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 0.95;
+    text-shadow: 0 1px 0 #fff1b8, 0 2px 0 #7c4d06, 0 3px 4px rgba(0, 0, 0, 0.18);
+  }
+
+  .print-header p {
+    margin: 0;
+    color: #7c4d06;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+  }
+
+  .print-header h2 {
+    position: relative;
+    margin: 8px 0 7px;
+    color: #111827;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+  }
+
+  .print-header h2::before,
+  .print-header h2::after {
+    content: "★";
+    position: absolute;
+    top: 3px;
+    color: #d8a11f;
+    font-size: 20px;
+  }
+
+  .print-header h2::before {
+    left: -34px;
+  }
+
+  .print-header h2::after {
+    right: -34px;
+  }
+
+  .print-ribbon {
+    position: relative;
+    min-width: 390px;
+    background: linear-gradient(90deg, #b87905, #ffd84a, #b87905);
+    border-radius: 4px;
+    padding: 7px 32px;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+  }
+
+  .print-ribbon::before,
+  .print-ribbon::after {
+    position: absolute;
+    top: 4px;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 900;
+  }
+
+  .print-ribbon::before {
+    content: "≪";
+    left: -30px;
+    color: #d8a11f;
+  }
+
+  .print-ribbon::after {
+    content: "≫";
+    right: -30px;
+    color: #d8a11f;
+  }
+
+  .print-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    width: 100%;
+    margin: 10px 0 12px;
+    border-bottom: 2px solid #d8a11f;
+    padding: 0 0 10px;
+    color: #111827;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .print-champion {
+    overflow: hidden;
+    margin-top: 0;
+    border: 2px solid #d8a11f;
+    border-radius: 9px;
+    background: #ffffff;
+    padding: 0;
+    break-inside: avoid;
+  }
+
+  .print-champion-title {
+    background: linear-gradient(90deg, #ffd84a, #fff2a6, #ffd84a);
+    border-bottom: 1px solid #d8a11f;
+    padding: 9px 14px;
+    color: #111827;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+
+  .print-champion-title::before,
+  .print-champion-title::after {
+    content: "🏆";
+    padding: 0 12px;
+  }
+
+  .print-champion-grid {
+    display: grid;
+    grid-template-columns: 1.75fr repeat(4, 1fr);
+    gap: 0;
+    align-items: center;
+    padding: 12px 18px 14px;
+  }
+
+  .print-champion-grid > div {
+    min-height: 52px;
+    display: grid;
+    align-content: center;
+    border-left: 2px solid #d8a11f;
+    padding: 0 14px;
+    text-align: center;
+  }
+
+  .print-champion-grid > div:first-child {
+    border-left: 0;
+    text-align: left;
+  }
+
+  .print-champion-name {
+    position: relative;
+    padding-left: 54px !important;
+  }
+
+  .print-champion-name::before {
+    content: "🐤";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 44px;
+    height: 44px;
+    color: #d8a11f;
+    font-size: 39px;
+    line-height: 1;
+  }
+
+  .print-champion h2 {
+    margin: 3px 0 0;
+    color: #111827;
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .print-champion-grid span {
+    display: block;
+    color: #111827;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .print-champion-grid strong {
+    display: block;
+    margin-top: 4px;
+    color: #111827;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .print-empty {
+    margin-top: 18px;
+    border: 1px solid #d1d5db;
+    padding: 20px;
+    text-align: center;
+    font-weight: 800;
+  }
+
+  .print-table-title {
+    display: grid;
+    justify-items: center;
+    margin-top: 12px;
+    border: 0;
+    padding: 8px 10px 6px;
+    color: #111827;
+    break-after: avoid;
+  }
+
+  .print-table-title span {
+    position: relative;
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+  }
+
+  .print-table-title span::before,
+  .print-table-title span::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 58px;
+    border-top: 2px solid #d8a11f;
+  }
+
+  .print-table-title span::before {
+    right: calc(100% + 12px);
+  }
+
+  .print-table-title span::after {
+    left: calc(100% + 12px);
+  }
+
+  .print-table-title strong {
+    color: #7c4d06;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+
+  .print-table {
+    width: 100%;
+    margin-top: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border: 1px solid #d7dce5;
+    border: 2px solid #d8a11f;
+    border-radius: 7px;
+    font-size: 12px;
+    break-inside: auto;
+  }
+
+  .print-table thead {
+    display: table-header-group;
+  }
+
+  .print-table tr {
+    break-inside: avoid;
+  }
+
+  .print-table th {
+    background: #ffd84a;
+    color: #111827;
+    border-right: 1px solid #d8a11f;
+    padding: 9px 8px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .print-table td {
+    border-right: 1px solid #d8a11f;
+    border-bottom: 1px solid #d8a11f;
+    padding: 9px 8px;
+    text-align: center;
+    font-weight: 800;
+  }
+
+  .print-table th:last-child,
+  .print-table td:last-child {
+    border-right: 0;
+  }
+
+  .print-table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .print-table td:first-child {
+    width: 48px;
+  }
+
+  .print-table td:nth-child(2) {
+    text-align: left;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .print-position {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .print-position-1 {
+    background: #ffd84a;
+  }
+
+  .print-position-2 {
+    background: #e5e7eb;
+  }
+
+  .print-position-3 {
+    background: #fb923c;
+  }
+
+  .print-footer {
+    display: grid;
+    grid-template-columns: 1fr 70px 1fr;
+    align-items: end;
+    gap: 36px;
+    margin-top: 18px;
+    border: 2px solid #d8a11f;
+    border-radius: 9px;
+    padding: 52px 32px 10px;
+    position: relative;
+    break-inside: avoid;
+  }
+
+  .print-footer-title {
+    position: absolute;
+    top: 7px;
+    left: 0;
+    right: 0;
+    display: grid;
+    justify-items: center;
+    color: #111827;
+    text-align: center;
+    line-height: 1.05;
+  }
+
+  .print-footer-title span {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+  }
+
+  .print-footer-title strong {
+    color: #d8a11f;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-shadow: 0 1px 0 #7c4d06;
+  }
+
+  .print-footer::before,
+  .print-footer::after {
+    position: absolute;
+    top: 20px;
+    color: #d8a11f;
+    font-size: 34px;
+  }
+
+  .print-footer::before {
+    content: "▥";
+    left: 28px;
+  }
+
+  .print-footer::after {
+    content: "🐤";
+    right: 28px;
+  }
+
+  .print-footer span {
+    display: block;
+    border-top: 1px solid #111827;
+  }
+
+  .print-footer img {
+    width: 56px;
+    height: 56px;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .print-footer p {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .print-dev {
+    margin: 8px 0 0;
+    color: #374151;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+}
