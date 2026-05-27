@@ -12,8 +12,10 @@ const DURATIONS = [
 
 const DEFAULT_DURATION = 300000
 const DEFAULT_DURATION_MODE = '300000'
+const HISTORY_LIMIT = 300
 const SETTINGS_KEY = 'belga-timer-settings'
 const HISTORY_KEY = 'belga-timer-history'
+const RANKING_KEY = 'belga-timer-ranking'
 
 function loadSettings() {
   try {
@@ -42,6 +44,14 @@ function loadHistory() {
   }
 }
 
+function loadRanking() {
+  try {
+    return JSON.parse(localStorage.getItem(RANKING_KEY)) || []
+  } catch {
+    return []
+  }
+}
+
 function formatTime(ms, withTenths = false) {
   const safeMs = Math.max(0, ms)
   const minutes = Math.floor(safeMs / 60000)
@@ -49,6 +59,106 @@ function formatTime(ms, withTenths = false) {
   const tenths = Math.floor((safeMs % 1000) / 100)
   const base = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
   return withTenths ? `${base}.${tenths}` : base
+}
+
+function parseTimeToMs(value) {
+  const text = String(value || '').trim().replace(',', '.')
+  if (!text) return 0
+
+  if (!text.includes(':')) {
+    const seconds = Number(text)
+    return Number.isFinite(seconds) ? Math.max(0, seconds * 1000) : 0
+  }
+
+  const [minutesPart, secondsPart] = text.split(':')
+  const minutes = Number(minutesPart)
+  const seconds = Number(secondsPart)
+  if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) return 0
+  return Math.max(0, (minutes * 60 + seconds) * 1000)
+}
+
+function rankingSourceId(result) {
+  return result.sourceId || result.id
+}
+
+function rankingContentKey(result) {
+  return [
+    normalizeLabel(result.canaryName || 'canario sem nome'),
+    formatTime(result.durationMs || 0),
+    formatTime(result.sungMs || 0, true),
+    formatTime(result.longestMs || 0, true),
+    Number(result.entries || 0)
+  ].join('|')
+}
+
+function isResultInRanking(ranking, result) {
+  const sourceId = rankingSourceId(result)
+  const contentKey = rankingContentKey(result)
+  return ranking.some((item) => rankingSourceId(item) === sourceId || rankingContentKey(item) === contentKey)
+}
+
+function dedupeRanking(items) {
+  const seen = new Set()
+
+  return items.filter((item) => {
+    const keys = [rankingSourceId(item), rankingContentKey(item)]
+    const duplicated = keys.some((key) => seen.has(key))
+    keys.forEach((key) => seen.add(key))
+    return !duplicated
+  })
+}
+
+function normalizeLabel(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function getWhatsAppLineValue(lines, labels) {
+  const normalizedLabels = labels.map(normalizeLabel)
+  const line = lines.find((item) => {
+    const normalized = normalizeLabel(item)
+    return normalizedLabels.some((label) => normalized.startsWith(`${label}:`))
+  })
+
+  if (!line) return ''
+  return line.split(':').slice(1).join(':').trim()
+}
+
+function parseWhatsAppResult(text) {
+  const lines = String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const canaryName = getWhatsAppLineValue(lines, ['Canário', 'Canario'])
+  const dateText = getWhatsAppLineValue(lines, ['Data'])
+  const durationText = getWhatsAppLineValue(lines, ['Duração da prova', 'Duracao da prova'])
+  const sungText = getWhatsAppLineValue(lines, ['Tempo total cantado'])
+  const longestText = getWhatsAppLineValue(lines, ['Maior sequência', 'Maior sequencia'])
+  const entriesText = getWhatsAppLineValue(lines, ['Entradas de canto', 'Entradas'])
+
+  const durationMs = parseTimeToMs(durationText)
+  const sungMs = parseTimeToMs(sungText)
+  const longestMs = parseTimeToMs(longestText)
+  const entries = Math.max(0, Number(String(entriesText).replace(/\D/g, '')) || 0)
+
+  if (!canaryName || durationMs <= 0 || sungMs <= 0) return null
+
+  return {
+    id: globalThis.crypto?.randomUUID?.() || String(Date.now()),
+    sourceId: `whatsapp|${canaryName}|${dateText}|${durationMs}|${sungMs}|${longestMs}|${entries}`,
+    date: new Date().toISOString(),
+    canaryName,
+    durationMs,
+    sungMs,
+    percent: durationMs ? (sungMs / durationMs) * 100 : 0,
+    longestMs,
+    entries
+  }
 }
 
 function buildWhatsAppUrl(result) {
@@ -103,8 +213,396 @@ function StatCard({ label, value, accent = false }) {
   )
 }
 
+function buildChampionRanking(results) {
+  const grouped = new Map()
+
+  results.forEach((item) => {
+    const name = item.canaryName || 'Canario sem nome'
+    const key = normalizeLabel(name)
+    const current = grouped.get(key) || {
+      canaryName: name,
+      totalSungMs: 0,
+      totalDurationMs: 0,
+      totalEntries: 0,
+      bestTrialMs: 0,
+      bestSequenceMs: 0,
+      trials: 0,
+      dates: [],
+      durations: new Set()
+    }
+
+    current.totalSungMs += item.sungMs || 0
+    current.totalDurationMs += item.durationMs || 0
+    current.totalEntries += item.entries || 0
+    current.bestTrialMs = Math.max(current.bestTrialMs, item.sungMs || 0)
+    current.bestSequenceMs = Math.max(current.bestSequenceMs, item.longestMs || 0)
+    current.trials += 1
+    current.dates.push(item.date)
+    current.durations.add(formatTime(item.durationMs || 0))
+    grouped.set(key, current)
+  })
+
+  return [...grouped.values()]
+    .map((item) => ({
+      ...item,
+      id: normalizeLabel(item.canaryName),
+      percent: item.totalDurationMs ? (item.totalSungMs / item.totalDurationMs) * 100 : 0,
+      durationsText: [...item.durations].join(' + '),
+      lastDate: item.dates.sort().at(-1)
+    }))
+    .sort((a, b) => b.totalSungMs - a.totalSungMs || b.bestTrialMs - a.bestTrialMs || b.totalEntries - a.totalEntries)
+}
+
+function RankingPanel({ ranking, setRanking, history }) {
+  const [whatsAppText, setWhatsAppText] = useState('')
+  const [importStatus, setImportStatus] = useState('')
+  const [rankingView, setRankingView] = useState('byTrial')
+  const [form, setForm] = useState({
+    canaryName: '',
+    sungTime: '',
+    durationMinutes: '5',
+    longestTime: '',
+    entries: ''
+  })
+
+  const sortedRanking = [...ranking].sort((a, b) => b.sungMs - a.sungMs)
+  const championRanking = buildChampionRanking(ranking)
+  const champion = championRanking[0]
+  const best = sortedRanking[0]
+  const totalEntries = sortedRanking.length
+  const average = totalEntries
+    ? sortedRanking.reduce((sum, item) => sum + item.sungMs, 0) / totalEntries
+    : 0
+
+  function updateForm(field, value) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  function importWhatsAppResult() {
+    const result = parseWhatsAppResult(whatsAppText)
+
+    if (!result) {
+      setImportStatus('Nao consegui ler a mensagem. Confira se ela veio do app.')
+      return
+    }
+
+    if (isResultInRanking(ranking, result)) {
+      setImportStatus('Esse resultado ja esta na classificacao.')
+      return
+    }
+
+    setRanking((current) => {
+      if (isResultInRanking(current, result)) return current
+      return dedupeRanking([result, ...current])
+    })
+    setWhatsAppText('')
+    setImportStatus('Resultado importado para a classificacao.')
+  }
+
+  function addManualResult(event) {
+    event.preventDefault()
+    const sungMs = parseTimeToMs(form.sungTime)
+    const durationMs = Math.max(1, Number(form.durationMinutes) || 5) * 60000
+    const longestMs = parseTimeToMs(form.longestTime)
+
+    if (!form.canaryName.trim() || sungMs <= 0) return
+
+    const result = {
+      id: globalThis.crypto?.randomUUID?.() || String(Date.now()),
+      date: new Date().toISOString(),
+      canaryName: form.canaryName.trim(),
+      durationMs,
+      sungMs,
+      percent: durationMs ? (sungMs / durationMs) * 100 : 0,
+      longestMs,
+      entries: Math.max(0, Number(form.entries) || 0)
+    }
+
+    setRanking((current) => dedupeRanking([result, ...current]))
+    setForm({ canaryName: '', sungTime: '', durationMinutes: form.durationMinutes, longestTime: '', entries: '' })
+  }
+
+  function addFromHistory(item) {
+    setRanking((current) => {
+      if (isResultInRanking(current, item)) return current
+
+      return dedupeRanking([
+        {
+          ...item,
+          id: globalThis.crypto?.randomUUID?.() || `${item.id}-${Date.now()}`,
+          sourceId: rankingSourceId(item),
+          importedAt: new Date().toISOString()
+        },
+        ...current
+      ])
+    })
+  }
+
+  function removeRankingItem(id) {
+    setRanking((current) => current.filter((item) => item.id !== id))
+  }
+
+  function requestFullscreen() {
+    document.documentElement.requestFullscreen?.()
+  }
+
+  return (
+    <div className="mx-auto grid w-full max-w-7xl gap-5">
+      <section className="rounded-lg border border-yellow-300/30 bg-slate-950/80 p-5 shadow-glow">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <img src={`${ASSET_BASE}icon.svg`} alt="" className="h-16 w-16 rounded-lg border border-yellow-300/30 bg-slate-950" />
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-yellow-200">Tropa JF</p>
+              <h2 className="text-4xl font-black leading-tight text-white lg:text-6xl">Classificacao Geral</h2>
+              <p className="mt-1 text-base font-semibold text-slate-300">
+                {rankingView === 'champion' ? 'Campeao da roda por soma de provas' : 'Ranking por tempo total cantado'}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={requestFullscreen} className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 px-5 py-4 text-sm font-black uppercase text-yellow-100">
+            Tela cheia
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {rankingView === 'champion' ? (
+            <>
+              <StatCard label="Canarios classificados" value={championRanking.length} accent />
+              <StatCard label="Lider atual" value={champion ? champion.canaryName : '-'} />
+              <StatCard label="Total do lider" value={champion ? formatTime(champion.totalSungMs, true) : '00:00.0'} />
+            </>
+          ) : (
+            <>
+              <StatCard label="Provas no painel" value={totalEntries} accent />
+              <StatCard label="Melhor tempo" value={best ? formatTime(best.sungMs, true) : '00:00.0'} />
+              <StatCard label="Media cantada" value={formatTime(average, true)} />
+            </>
+          )}
+        </div>
+
+        <div className="mt-5 grid overflow-hidden rounded-lg border border-yellow-300/30 bg-slate-950/80 p-1 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setRankingView('byTrial')}
+            className={`rounded-md px-4 py-3 text-base font-black ${rankingView === 'byTrial' ? 'bg-yellow-300 text-slate-950' : 'text-slate-300'}`}
+          >
+            Por prova
+          </button>
+          <button
+            type="button"
+            onClick={() => setRankingView('champion')}
+            className={`rounded-md px-4 py-3 text-base font-black ${rankingView === 'champion' ? 'bg-yellow-300 text-slate-950' : 'text-slate-300'}`}
+          >
+            Campeao da roda
+          </button>
+        </div>
+      </section>
+
+      {rankingView === 'byTrial' && (
+      <section className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/80">
+          <div className="grid grid-cols-[72px_1.25fr_0.75fr_1fr_0.9fr_1fr_78px] gap-2 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
+            <span>Pos</span>
+            <span>Canario</span>
+            <span className="text-yellow-200">Prova</span>
+            <span>Total</span>
+            <span>Aprov.</span>
+            <span>Maior seq.</span>
+            <span>Ent.</span>
+          </div>
+
+          {sortedRanking.length === 0 && (
+            <div className="p-8 text-center text-lg font-semibold text-slate-400">
+              Nenhum resultado adicionado ao painel ainda.
+            </div>
+          )}
+
+          <div className="divide-y divide-white/10">
+            {sortedRanking.map((item, index) => (
+              <article key={item.id} className={`grid grid-cols-[72px_1.25fr_0.75fr_1fr_0.9fr_1fr_78px] items-center gap-2 px-4 py-4 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
+                <div className={`grid h-12 w-12 place-items-center rounded-lg text-xl font-black ${index === 0 ? 'bg-yellow-300 text-slate-950' : index === 1 ? 'bg-slate-300 text-slate-950' : index === 2 ? 'bg-orange-400 text-slate-950' : 'bg-white/10 text-white'}`}>
+                  {index + 1}
+                </div>
+                <div>
+                  <p className="text-xl font-black text-white lg:text-3xl">{item.canaryName || 'Canario sem nome'}</p>
+                  <p className="text-xs font-semibold text-slate-500">{new Date(item.date).toLocaleString('pt-BR')}</p>
+                </div>
+                <p className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 px-2 py-2 text-center font-mono text-lg font-black text-yellow-200 lg:text-2xl">{formatTime(item.durationMs)}</p>
+                <p className="font-mono text-2xl font-black text-yellow-200 lg:text-4xl">{formatTime(item.sungMs, true)}</p>
+                <p className="text-xl font-black text-white lg:text-3xl">{item.percent.toFixed(1)}%</p>
+                <p className="font-mono text-xl font-black text-white lg:text-3xl">{formatTime(item.longestMs, true)}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xl font-black text-white lg:text-3xl">{item.entries}</span>
+                  <button type="button" onClick={() => removeRankingItem(item.id)} className="rounded-md border border-red-300/30 px-2 py-1 text-xs font-black text-red-100">
+                    X
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-5">
+          <section className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 p-4 shadow-glow">
+            <h3 className="text-lg font-black text-white">Importar do WhatsApp</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-300">Cole aqui a mensagem recebida do avaliador.</p>
+            <textarea
+              value={whatsAppText}
+              onChange={(event) => {
+                setWhatsAppText(event.target.value)
+                setImportStatus('')
+              }}
+              placeholder={`Canario: Teste03\nDuracao da prova: 01:00\nTempo total cantado: 00:27.7\nMaior sequencia: 00:05.5\nEntradas de canto: 8`}
+              rows="8"
+              className="mt-4 w-full resize-y rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-yellow-300"
+            />
+            {importStatus && <p className="mt-3 text-sm font-bold text-yellow-100">{importStatus}</p>}
+            <button type="button" onClick={importWhatsAppResult} className="mt-4 w-full rounded-lg bg-yellow-300 px-4 py-4 text-base font-black text-slate-950">
+              Importar resultado
+            </button>
+          </section>
+
+          <form onSubmit={addManualResult} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <h3 className="text-lg font-black text-white">Adicionar resultado</h3>
+            <div className="mt-4 grid gap-3">
+              <input value={form.canaryName} onChange={(event) => updateForm('canaryName', event.target.value)} placeholder="Nome do canario" className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300" />
+              <input value={form.sungTime} onChange={(event) => updateForm('sungTime', event.target.value)} placeholder="Tempo cantado. Ex.: 03:58.1" className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300" />
+              <div className="grid grid-cols-2 gap-3">
+                <input value={form.durationMinutes} onChange={(event) => updateForm('durationMinutes', event.target.value)} placeholder="Prova min" className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300" />
+                <input value={form.entries} onChange={(event) => updateForm('entries', event.target.value)} placeholder="Entradas" className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300" />
+              </div>
+              <input value={form.longestTime} onChange={(event) => updateForm('longestTime', event.target.value)} placeholder="Maior sequencia. Ex.: 00:41.3" className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300" />
+              <button type="submit" className="rounded-lg bg-yellow-300 px-4 py-4 text-base font-black text-slate-950">
+                Adicionar ao painel
+              </button>
+            </div>
+          </form>
+
+          <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-lg font-black text-white">Historico recente</h3>
+              <button type="button" onClick={() => setRanking([])} className="rounded-md border border-red-300/30 px-3 py-2 text-sm font-bold text-red-100">
+                Limpar painel
+              </button>
+            </div>
+            <div className="mt-4 grid max-h-[520px] gap-3 overflow-auto pr-1">
+              {history.length === 0 && <p className="text-sm text-slate-400">Nenhuma prova no historico.</p>}
+              {history.map((item) => {
+                const alreadySent = isResultInRanking(ranking, item)
+
+                return (
+                <article key={item.id} className="rounded-lg border border-white/10 bg-slate-950/70 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-black text-white">{item.canaryName || 'Canario sem nome'}</p>
+                      <p className="text-xs text-slate-400">{formatTime(item.sungMs, true)} - {item.percent.toFixed(1)}%</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addFromHistory(item)}
+                      disabled={alreadySent}
+                      className={`rounded-md px-3 py-2 text-xs font-black ${alreadySent ? 'cursor-not-allowed bg-slate-700 text-slate-300' : 'bg-emerald-500 text-slate-950'}`}
+                    >
+                      {alreadySent ? 'Ja enviado' : 'Enviar para TV'}
+                    </button>
+                  </div>
+                </article>
+                )
+              })}
+            </div>
+          </section>
+        </div>
+      </section>
+      )}
+
+      {rankingView === 'champion' && (
+        <section className="grid gap-5 lg:grid-cols-[1.35fr_0.75fr]">
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/80">
+            <div className="grid grid-cols-[72px_1.35fr_1.05fr_0.8fr_1fr_0.75fr] gap-4 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
+              <span>Pos</span>
+              <span>Canario</span>
+              <span className="text-yellow-200">Total geral</span>
+              <span className="text-center">Provas</span>
+              <span>Melhor prova</span>
+              <span>Entradas</span>
+            </div>
+
+            {championRanking.length === 0 && (
+              <div className="p-8 text-center text-lg font-semibold text-slate-400">
+                Nenhum resultado adicionado ao painel ainda.
+              </div>
+            )}
+
+            <div className="divide-y divide-white/10">
+              {championRanking.map((item, index) => (
+                <article key={item.id} className={`grid grid-cols-[72px_1.35fr_1.05fr_0.8fr_1fr_0.75fr] items-center gap-4 px-4 py-5 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
+                  <div className={`grid h-12 w-12 place-items-center rounded-lg text-xl font-black ${index === 0 ? 'bg-yellow-300 text-slate-950' : index === 1 ? 'bg-slate-300 text-slate-950' : index === 2 ? 'bg-orange-400 text-slate-950' : 'bg-white/10 text-white'}`}>
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-white lg:text-4xl">{item.canaryName}</p>
+                    <p className="text-xs font-semibold text-slate-500">{item.lastDate ? new Date(item.lastDate).toLocaleString('pt-BR') : '-'}</p>
+                  </div>
+                  <p className="font-mono text-2xl font-black text-yellow-200 lg:text-4xl">{formatTime(item.totalSungMs, true)}</p>
+                  <p className="text-center text-2xl font-black text-white lg:text-4xl">{item.trials}</p>
+                  <p className="font-mono text-xl font-black text-yellow-200 lg:text-3xl">{formatTime(item.bestTrialMs, true)}</p>
+                  <p className="text-2xl font-black text-white lg:text-4xl">{item.totalEntries}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <aside className="grid gap-5 self-start">
+            <section className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 p-5 shadow-glow">
+              <p className="text-sm font-black uppercase tracking-wide text-yellow-200">Campeao da roda</p>
+              {champion ? (
+                <>
+                  <h3 className="mt-2 text-4xl font-black text-white">{champion.canaryName}</h3>
+                  <div className="mt-5 grid gap-3">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span className="text-sm font-bold text-slate-300">Total geral</span>
+                      <strong className="font-mono text-3xl text-yellow-200">{formatTime(champion.totalSungMs, true)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span className="text-sm font-bold text-slate-300">Provas</span>
+                      <strong className="text-2xl text-white">{champion.trials}</strong>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span className="text-sm font-bold text-slate-300">Duracoes</span>
+                      <strong className="text-right text-base text-white">{champion.durationsText || '-'}</strong>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span className="text-sm font-bold text-slate-300">Melhor prova</span>
+                      <strong className="font-mono text-2xl text-yellow-200">{formatTime(champion.bestTrialMs, true)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-300">Entradas totais</span>
+                      <strong className="text-2xl text-white">{champion.totalEntries}</strong>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-3 text-sm font-semibold text-slate-300">Importe ou envie resultados na aba Por prova para montar o campeao da roda.</p>
+              )}
+            </section>
+
+            <section className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
+              <h3 className="text-lg font-black text-white">Como funciona</h3>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                Esta tela soma todas as provas do mesmo canario. A classificacao final fica pelo tempo total cantado, e a melhor prova mostra o maior tempo que ele fez em uma unica prova.
+              </p>
+            </section>
+          </aside>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const initialSettings = useMemo(loadSettings, [])
+  const [viewMode, setViewMode] = useState('timer')
   const [durationMs, setDurationMs] = useState(initialSettings.durationMs)
   const [customMinutes, setCustomMinutes] = useState(initialSettings.customMinutes)
   const [durationMode, setDurationMode] = useState(initialSettings.durationMode)
@@ -116,6 +614,7 @@ export default function App() {
   const [isSinging, setIsSinging] = useState(false)
   const [canaryName, setCanaryName] = useState('')
   const [history, setHistory] = useState(loadHistory)
+  const [ranking, setRanking] = useState(loadRanking)
 
   const durationRef = useRef(durationMs)
   const statusRef = useRef(status)
@@ -147,6 +646,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
   }, [history])
+
+  useEffect(() => {
+    const cleaned = dedupeRanking(ranking)
+    if (cleaned.length !== ranking.length) {
+      setRanking(cleaned)
+      return
+    }
+
+    localStorage.setItem(RANKING_KEY, JSON.stringify(cleaned))
+  }, [ranking])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -251,7 +760,7 @@ export default function App() {
 
     setRemainingMs(0)
     setStatus('finished')
-    setHistory((current) => [result, ...current].slice(0, 30))
+    setHistory((current) => [result, ...current].slice(0, HISTORY_LIMIT))
     playFinishBeep()
     vibrate([180, 80, 180])
   }
@@ -271,11 +780,29 @@ export default function App() {
     if (status === 'idle' || status === 'finished') resetTrial(minutes * 60000)
   }
 
+  function addResultToRanking(result) {
+    setRanking((current) => {
+      if (isResultInRanking(current, result)) return current
+
+      return dedupeRanking([
+        {
+          ...result,
+          id: globalThis.crypto?.randomUUID?.() || `${result.id}-${Date.now()}`,
+          sourceId: rankingSourceId(result),
+          importedAt: new Date().toISOString()
+        },
+        ...current
+      ])
+    })
+  }
+
   const lastResult = history[0]
+  const lastResultInRanking = lastResult ? isResultInRanking(ranking, lastResult) : false
+  const canOpenRanking = status === 'idle' || status === 'finished'
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#3b2f16_0,#111827_35%,#020617_78%)] px-4 py-5 text-slate-100 safe-bottom">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+      <div className={`mx-auto flex w-full flex-col gap-5 ${viewMode === 'ranking' ? 'max-w-7xl' : 'max-w-2xl'}`}>
         <header className="grid gap-4">
           <div className="overflow-hidden rounded-lg border border-yellow-300/25 bg-black shadow-glow">
             <img
@@ -303,7 +830,45 @@ export default function App() {
               <p className="text-sm font-black text-white">{formatTime(durationMs)}</p>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-slate-950/70 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('timer')}
+              className={`rounded-md px-4 py-3 text-sm font-black uppercase ${viewMode === 'timer' ? 'bg-yellow-300 text-slate-950' : 'text-slate-300'}`}
+            >
+              Cronometro
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (canOpenRanking) setViewMode('ranking')
+              }}
+              disabled={!canOpenRanking}
+              className={`rounded-md px-4 py-3 text-sm font-black uppercase ${
+                viewMode === 'ranking'
+                  ? 'bg-yellow-300 text-slate-950'
+                  : canOpenRanking
+                    ? 'text-slate-300'
+                    : 'cursor-not-allowed text-slate-600 opacity-50'
+              }`}
+            >
+              Classificacao TV
+            </button>
+          </div>
         </header>
+
+        {viewMode === 'ranking' && (
+          <>
+            <RankingPanel ranking={ranking} setRanking={setRanking} history={history} />
+            <footer className="pb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Desenvolvido por Leandro Ventura
+            </footer>
+          </>
+        )}
+
+        {viewMode === 'timer' && (
+          <>
 
         <section className={`rounded-lg border p-5 shadow-2xl ${oneMinuteWarning ? 'border-yellow-300 bg-yellow-300/12' : 'border-white/10 bg-slate-950/70'}`}>
           {oneMinuteWarning && (
@@ -376,6 +941,14 @@ export default function App() {
                 Nova prova
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => addResultToRanking(lastResult)}
+              disabled={lastResultInRanking}
+              className={`mt-3 w-full rounded-lg border px-4 py-4 text-lg font-black ${lastResultInRanking ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
+            >
+              {lastResultInRanking ? 'Resultado ja esta na classificacao' : 'Enviar para classificacao TV'}
+            </button>
           </section>
         )}
 
@@ -454,6 +1027,14 @@ export default function App() {
                 >
                   Enviar resultado ao chefe de roda
                 </a>
+                <button
+                  type="button"
+                  onClick={() => addResultToRanking(item)}
+                  disabled={isResultInRanking(ranking, item)}
+                  className={`mt-3 w-full rounded-lg border px-4 py-3 text-center text-sm font-black ${isResultInRanking(ranking, item) ? 'cursor-not-allowed border-slate-600 bg-slate-700/60 text-slate-300' : 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100'}`}
+                >
+                  {isResultInRanking(ranking, item) ? 'Resultado ja esta na classificacao' : 'Enviar para classificacao TV'}
+                </button>
               </article>
             ))}
           </div>
@@ -462,6 +1043,8 @@ export default function App() {
         <footer className="pb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
           Desenvolvido por Leandro Ventura
         </footer>
+          </>
+        )}
       </div>
     </main>
   )
