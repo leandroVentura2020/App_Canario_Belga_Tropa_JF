@@ -1159,12 +1159,14 @@ export default function App() {
               <label className="mt-5 grid gap-2">
                 <span className="text-sm font-bold text-slate-300">Digite o codigo para abrir o painel</span>
                 <input
+                  type="password"
                   value={chiefCode}
                   onChange={(event) => {
                     setChiefCode(event.target.value)
                     setChiefAccessError('')
                   }}
                   autoFocus
+                  autoComplete="off"
                   inputMode="text"
                   className="rounded-lg border border-white/10 bg-slate-900 px-4 py-3 text-center text-lg font-black uppercase tracking-widest text-white outline-none focus:border-yellow-300"
                 />
