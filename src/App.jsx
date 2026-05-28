@@ -3,15 +3,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const ASSET_BASE = import.meta.env.BASE_URL
 
 const DURATIONS = [
-  { label: '3 min', value: '180000' },
   { label: '5 min', value: '300000' },
   { label: '10 min', value: '600000' },
   { label: '15 min', value: '900000' },
+  { label: '20 min', value: '1200000' },
   { label: 'Personalizado', value: 'custom' }
 ]
 
 const DEFAULT_DURATION = 300000
 const DEFAULT_DURATION_MODE = '300000'
+const DEFAULT_CUSTOM_MINUTES = 5
 const HISTORY_LIMIT = 300
 const SETTINGS_KEY = 'belga-timer-settings'
 const HISTORY_KEY = 'belga-timer-history'
@@ -23,8 +24,14 @@ const CHIEF_ACCESS_CODE = 'TROPAJF2026'
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY))
-    const customMinutes = saved?.customMinutes || 7
-    const durationMode = saved?.durationMode || String(saved?.durationMs || DEFAULT_DURATION)
+    const savedCustomMinutes = Number(saved?.customMinutes)
+    const customMinutes = Number.isFinite(savedCustomMinutes)
+      ? Math.max(1, Math.min(60, savedCustomMinutes))
+      : DEFAULT_CUSTOM_MINUTES
+    const savedDurationMode = saved?.durationMode || String(saved?.durationMs || DEFAULT_DURATION)
+    const durationMode = DURATIONS.some((item) => item.value === savedDurationMode)
+      ? savedDurationMode
+      : DEFAULT_DURATION_MODE
     const durationMs = durationMode === 'custom'
       ? Math.max(60000, customMinutes * 60000)
       : Number(durationMode || DEFAULT_DURATION)
@@ -35,7 +42,7 @@ function loadSettings() {
       durationMode
     }
   } catch {
-    return { durationMs: DEFAULT_DURATION, customMinutes: 7, durationMode: DEFAULT_DURATION_MODE }
+    return { durationMs: DEFAULT_DURATION, customMinutes: DEFAULT_CUSTOM_MINUTES, durationMode: DEFAULT_DURATION_MODE }
   }
 }
 
@@ -992,11 +999,25 @@ export default function App() {
   }
 
   function changeCustomMinutes(value) {
-    const minutes = Math.max(1, Math.min(60, Number(value) || 1))
     setDurationMode('custom')
+
+    if (value === '') {
+      setCustomMinutes('')
+      return
+    }
+
+    const minutes = Math.max(1, Math.min(60, Number(value) || 1))
     setCustomMinutes(minutes)
     setDurationMs(minutes * 60000)
     if (status === 'idle' || status === 'finished') resetTrial(minutes * 60000)
+  }
+
+  function finishCustomMinutesEdit() {
+    if (customMinutes !== '') return
+
+    setCustomMinutes(1)
+    setDurationMs(60000)
+    if (status === 'idle' || status === 'finished') resetTrial(60000)
   }
 
   function addResultToRanking(result) {
@@ -1312,6 +1333,7 @@ export default function App() {
                   max="60"
                   value={customMinutes}
                   onChange={(event) => changeCustomMinutes(event.target.value)}
+                  onBlur={finishCustomMinutesEdit}
                   className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300"
                 />
               </label>
