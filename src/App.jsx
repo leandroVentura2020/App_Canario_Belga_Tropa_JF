@@ -543,7 +543,7 @@ function RankingPanel({ ranking, setRanking, history }) {
       {rankingView === 'byTrial' && (
       <section className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
         <div className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/80">
-          <div className="grid grid-cols-[72px_1.25fr_0.75fr_1fr_0.9fr_1fr_78px] gap-2 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
+          <div className="grid grid-cols-[56px_minmax(120px,1.1fr)_76px_112px_82px_104px_68px] gap-2 border-b border-white/10 bg-white/[0.05] px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
             <span>Pos</span>
             <span>Canario</span>
             <span className="text-yellow-200">Prova</span>
@@ -561,21 +561,21 @@ function RankingPanel({ ranking, setRanking, history }) {
 
           <div className="divide-y divide-white/10">
             {sortedRanking.map((item, index) => (
-              <article key={item.id} className={`grid grid-cols-[72px_1.25fr_0.75fr_1fr_0.9fr_1fr_78px] items-center gap-2 px-4 py-4 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
+              <article key={item.id} className={`grid grid-cols-[56px_minmax(120px,1.1fr)_76px_112px_82px_104px_68px] items-center gap-2 px-3 py-4 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
                 <div className={`grid h-12 w-12 place-items-center rounded-lg text-xl font-black ${index === 0 ? 'bg-yellow-300 text-slate-950' : index === 1 ? 'bg-slate-300 text-slate-950' : index === 2 ? 'bg-orange-400 text-slate-950' : 'bg-white/10 text-white'}`}>
                   {index + 1}
                 </div>
-                <div>
-                  <p className="text-xl font-black text-white lg:text-3xl">{item.canaryName || 'Canario sem nome'}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-xl font-black text-white lg:text-2xl" title={item.canaryName || 'Canario sem nome'}>{item.canaryName || 'Canario sem nome'}</p>
                   <p className="text-xs font-semibold text-slate-500">{new Date(item.date).toLocaleString('pt-BR')}</p>
                 </div>
                 <p className="rounded-lg border border-yellow-300/30 bg-yellow-300/10 px-2 py-2 text-center font-mono text-lg font-black text-yellow-200 lg:text-2xl">{formatTime(item.durationMs)}</p>
-                <p className="font-mono text-2xl font-black text-yellow-200 lg:text-4xl">{formatTime(item.sungMs, true)}</p>
-                <p className="text-xl font-black text-white lg:text-3xl">{item.percent.toFixed(1)}%</p>
-                <p className="font-mono text-xl font-black text-white lg:text-3xl">{formatTime(item.longestMs, true)}</p>
+                <p className="font-mono text-2xl font-black text-yellow-200 lg:text-3xl">{formatTime(item.sungMs, true)}</p>
+                <p className="text-xl font-black text-white lg:text-2xl">{item.percent.toFixed(1)}%</p>
+                <p className="font-mono text-xl font-black text-white lg:text-2xl">{formatTime(item.longestMs, true)}</p>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xl font-black text-white lg:text-3xl">{item.entries}</span>
-                  <button type="button" onClick={() => removeRankingItem(item.id)} className="rounded-md border border-red-300/30 px-2 py-1 text-xs font-black text-red-100">
+                  <span className="text-xl font-black text-white lg:text-2xl">{item.entries}</span>
+                  <button type="button" onClick={() => removeRankingItem(item.id)} className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-red-300/30 text-xs font-black text-red-100">
                     X
                   </button>
                 </div>
