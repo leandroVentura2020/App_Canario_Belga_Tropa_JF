@@ -528,14 +528,14 @@ function RankingPanel({ ranking, setRanking, history }) {
             onClick={() => setRankingView('byTrial')}
             className={`rounded-md px-4 py-3 text-base font-black ${rankingView === 'byTrial' ? 'bg-yellow-300 text-slate-950' : 'text-slate-300'}`}
           >
-            Por prova
+            POR PROVA
           </button>
           <button
             type="button"
             onClick={() => setRankingView('champion')}
             className={`rounded-md px-4 py-3 text-base font-black ${rankingView === 'champion' ? 'bg-yellow-300 text-slate-950' : 'text-slate-300'}`}
           >
-            Campeao da roda
+            CAMPEAO DA RODA
           </button>
         </div>
       </section>
@@ -660,7 +660,7 @@ function RankingPanel({ ranking, setRanking, history }) {
       {rankingView === 'champion' && (
         <section className="grid gap-5 lg:grid-cols-[1.35fr_0.75fr]">
           <div className="overflow-hidden rounded-lg border border-white/10 bg-slate-950/80">
-            <div className="grid grid-cols-[72px_1.35fr_1.05fr_0.8fr_1fr_0.75fr] gap-4 border-b border-white/10 bg-white/[0.05] px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="grid grid-cols-[56px_minmax(120px,1.1fr)_112px_70px_104px_68px] gap-2 border-b border-white/10 bg-white/[0.05] px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-400">
               <span>Pos</span>
               <span>Canario</span>
               <span className="text-yellow-200">Total geral</span>
@@ -677,18 +677,18 @@ function RankingPanel({ ranking, setRanking, history }) {
 
             <div className="divide-y divide-white/10">
               {championRanking.map((item, index) => (
-                <article key={item.id} className={`grid grid-cols-[72px_1.35fr_1.05fr_0.8fr_1fr_0.75fr] items-center gap-4 px-4 py-5 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
+                <article key={item.id} className={`grid grid-cols-[56px_minmax(120px,1.1fr)_112px_70px_104px_68px] items-center gap-2 px-3 py-4 ${index < 3 ? 'bg-yellow-300/10' : ''}`}>
                   <div className={`grid h-12 w-12 place-items-center rounded-lg text-xl font-black ${index === 0 ? 'bg-yellow-300 text-slate-950' : index === 1 ? 'bg-slate-300 text-slate-950' : index === 2 ? 'bg-orange-400 text-slate-950' : 'bg-white/10 text-white'}`}>
                     {index + 1}
                   </div>
-                  <div>
-                    <p className="text-xl font-black text-white lg:text-4xl">{item.canaryName}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-xl font-black text-white lg:text-2xl" title={item.canaryName}>{item.canaryName}</p>
                     <p className="text-xs font-semibold text-slate-500">{item.lastDate ? new Date(item.lastDate).toLocaleString('pt-BR') : '-'}</p>
                   </div>
-                  <p className="font-mono text-2xl font-black text-yellow-200 lg:text-4xl">{formatTime(item.totalSungMs, true)}</p>
-                  <p className="text-center text-2xl font-black text-white lg:text-4xl">{item.trials}</p>
-                  <p className="font-mono text-xl font-black text-yellow-200 lg:text-3xl">{formatTime(item.bestTrialMs, true)}</p>
-                  <p className="text-2xl font-black text-white lg:text-4xl">{item.totalEntries}</p>
+                  <p className="font-mono text-2xl font-black text-yellow-200 lg:text-3xl">{formatTime(item.totalSungMs, true)}</p>
+                  <p className="text-center text-2xl font-black text-white lg:text-3xl">{item.trials}</p>
+                  <p className="font-mono text-xl font-black text-yellow-200 lg:text-2xl">{formatTime(item.bestTrialMs, true)}</p>
+                  <p className="text-2xl font-black text-white lg:text-3xl">{item.totalEntries}</p>
                 </article>
               ))}
             </div>
