@@ -894,7 +894,7 @@ export default function App() {
     releaseWakeLock()
   }
 
-  function resetTrial(nextDuration = durationRef.current) {
+  function resetTrial(nextDuration = durationRef.current, options = {}) {
     releaseWakeLock()
     setStatus('idle')
     setRemainingMs(nextDuration)
@@ -905,6 +905,10 @@ export default function App() {
     singingStartRef.current = null
     lastTickRef.current = null
     finishSavedRef.current = false
+    if (options.clearCanaryName) {
+      canaryNameRef.current = ''
+      setCanaryName('')
+    }
   }
 
   function closeSingingSegment(now, keepStopped = false) {
@@ -1257,7 +1261,7 @@ export default function App() {
           <div className="mt-4 grid grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={isTrialFinished ? () => resetTrial() : startTrial}
+              onClick={isTrialFinished ? () => resetTrial(durationRef.current, { clearCanaryName: true }) : startTrial}
               disabled={isTrialFinished ? !canStartNewTrial : !canStartTrial}
               className={`rounded-lg px-3 py-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-70 ${
                 isTrialFinished
@@ -1330,19 +1334,16 @@ export default function App() {
               <StatCard label="Maior sequência" value={formatTime(lastResult.longestMs, true)} />
               <StatCard label="Entradas" value={lastResult.entries} />
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4">
               <a
                 href={buildWhatsAppUrl(lastResult)}
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => markWhatsAppSent(lastResult)}
-                className={`rounded-lg px-4 py-4 text-center text-lg font-black ${lastResultWhatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'send-result-alert bg-emerald-500 text-slate-950'}`}
+                className={`block rounded-lg px-4 py-4 text-center text-lg font-black ${lastResultWhatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'send-result-alert bg-emerald-500 text-slate-950'}`}
               >
                 {lastResultWhatsAppSent ? 'Resultado enviado com sucesso' : 'Enviar resultado ao chefe de roda'}
               </a>
-              <button type="button" onClick={() => resetTrial()} className="rounded-lg bg-yellow-300 px-4 py-4 text-lg font-black text-slate-950">
-                Nova prova
-              </button>
             </div>
             {chiefAccessGranted && (
               <button
