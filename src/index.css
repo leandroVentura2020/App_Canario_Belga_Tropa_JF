@@ -41,6 +41,23 @@ button {
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
+.missing-data-alert {
+  animation: missing-data-blink 0.9s ease-in-out infinite;
+}
+
+@keyframes missing-data-blink {
+  0%,
+  100% {
+    background-color: #dc2626;
+    box-shadow: 0 0 0 rgba(248, 113, 113, 0), 0 10px 18px rgba(69, 10, 10, 0.4);
+  }
+
+  50% {
+    background-color: #ff1f1f;
+    box-shadow: 0 0 22px rgba(248, 113, 113, 0.95), 0 10px 24px rgba(69, 10, 10, 0.7);
+  }
+}
+
 .print-report {
   display: none;
 }

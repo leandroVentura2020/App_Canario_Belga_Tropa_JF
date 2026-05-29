@@ -1239,8 +1239,17 @@ export default function App() {
           </button>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <button type="button" onClick={startTrial} disabled={!canStartTrial} className="rounded-lg bg-yellow-300 px-3 py-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-45">
-              INICIAR PROVA
+            <button
+              type="button"
+              onClick={startTrial}
+              disabled={!canStartTrial}
+              className={`rounded-lg px-3 py-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-70 ${
+                hasRequiredTrialData
+                  ? 'bg-yellow-300 text-slate-950'
+                  : 'missing-data-alert border border-red-200 bg-red-600 text-white shadow-lg shadow-red-950/40'
+              }`}
+            >
+              {hasRequiredTrialData ? 'INICIAR PROVA' : 'PREENCHA OS DADOS'}
             </button>
             <button type="button" onClick={pauseTrial} disabled={status !== 'running'} className="rounded-lg border border-white/15 bg-white/10 px-3 py-4 text-sm font-black text-white disabled:opacity-45">
               PAUSAR PROVA
@@ -1249,9 +1258,11 @@ export default function App() {
               ZERAR PROVA
             </button>
           </div>
-          {!hasRequiredTrialData && status !== 'running' && (
+          {status !== 'running' && (
             <p className="mt-3 text-center text-xs font-bold uppercase tracking-wide text-yellow-200">
-              Preencha o nome do canario e o tempo da prova para iniciar
+              {hasRequiredTrialData
+                ? 'Tudo pronto. Aguarde o chefe da roda autorizar o inicio da prova.'
+                : 'Preencha o nome do canario e o tempo da prova para iniciar'}
             </p>
           )}
         </section>
