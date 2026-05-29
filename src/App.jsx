@@ -1290,7 +1290,7 @@ export default function App() {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => markWhatsAppSent(lastResult)}
-                className={`rounded-lg px-4 py-4 text-center text-lg font-black ${lastResultWhatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'bg-emerald-500 text-slate-950'}`}
+                className={`rounded-lg px-4 py-4 text-center text-lg font-black ${lastResultWhatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'send-result-alert bg-emerald-500 text-slate-950'}`}
               >
                 {lastResultWhatsAppSent ? 'Resultado enviado com sucesso' : 'Enviar resultado ao chefe de roda'}
               </a>
@@ -1387,7 +1387,7 @@ export default function App() {
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => markWhatsAppSent(item)}
-                  className={`mt-3 block rounded-lg px-4 py-3 text-center text-sm font-black ${whatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'bg-emerald-500 text-slate-950'}`}
+                  className={`mt-3 block rounded-lg px-4 py-3 text-center text-sm font-black ${whatsAppSent ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100' : 'send-result-alert bg-emerald-500 text-slate-950'}`}
                 >
                   {whatsAppSent ? 'Resultado enviado com sucesso' : 'Enviar resultado ao chefe de roda'}
                 </a>
