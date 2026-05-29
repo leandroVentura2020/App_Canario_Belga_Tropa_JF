@@ -868,11 +868,15 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
+  useEffect(() => {
+    if ((status === 'running' || status === 'paused') && remainingMs <= 0) finishTrial()
+  }, [status, remainingMs])
+
   const currentSungMs = status === 'running' && isSinging && singingStartRef.current
     ? sungMs + (performance.now() - singingStartRef.current)
     : sungMs
   const percent = durationMs ? Math.min(100, (currentSungMs / durationMs) * 100) : 0
-  const oneMinuteWarning = status === 'running' && remainingMs <= 60000
+  const oneMinuteWarning = status === 'running' && remainingMs > 0 && remainingMs <= 60000
 
   function startTrial() {
     if (!canaryNameRef.current.trim() || durationRef.current < 60000) return
@@ -1081,9 +1085,15 @@ export default function App() {
   const lastResult = history[0]
   const lastResultInRanking = lastResult ? isResultInRanking(ranking, lastResult) : false
   const lastResultWhatsAppSent = lastResult ? isWhatsAppSent(lastResult) : false
-  const canOpenRanking = status === 'idle' || status === 'finished'
   const hasRequiredTrialData = canaryName.trim().length > 0 && durationMs >= 60000
-  const canStartTrial = status !== 'running' && hasRequiredTrialData
+  const hasTimerExpired = status !== 'idle' && remainingMs <= 0
+  const isTrialFinished = status === 'finished' || hasTimerExpired
+  const isTrialRunning = status === 'running' && !isTrialFinished
+  const isTrialPaused = status === 'paused' && !isTrialFinished
+  const isTrialLocked = isTrialRunning || isTrialPaused
+  const canOpenRanking = status === 'idle' || isTrialFinished
+  const canStartTrial = (status === 'idle' || isTrialPaused) && hasRequiredTrialData
+  const canStartNewTrial = isTrialFinished && hasRequiredTrialData && lastResultWhatsAppSent
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#3b2f16_0,#111827_35%,#020617_78%)] px-4 py-5 text-slate-100 safe-bottom">
@@ -1220,47 +1230,83 @@ export default function App() {
           <div className="text-center">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-400">Tempo restante da prova</p>
             <p className="mt-2 font-mono text-7xl font-black leading-none text-white">{formatTime(remainingMs)}</p>
-            <p className={`mt-3 text-base font-bold ${isSinging ? 'text-red-200' : 'text-emerald-200'}`}>
-              {isSinging ? 'Cantando agora' : 'Aguardando canto'}
+            <p className={`mt-3 text-base font-bold ${isTrialFinished ? 'text-yellow-200' : isSinging ? 'text-red-200' : 'text-emerald-200'}`}>
+              {isTrialFinished ? 'Prova finalizada' : isSinging ? 'Cantando agora' : 'Aguardando canto'}
             </p>
           </div>
 
           <button
             type="button"
             onClick={toggleSinging}
-            disabled={status !== 'running'}
-            className={`mt-6 h-28 w-full rounded-lg text-3xl font-black shadow-xl transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
-              isSinging
+            disabled={!isTrialRunning}
+            className={`mt-6 h-28 w-full rounded-lg text-3xl font-black shadow-xl transition active:scale-[0.98] disabled:cursor-not-allowed ${
+              isTrialFinished
+                ? 'bg-yellow-300 text-slate-950 shadow-yellow-950/40'
+                : isTrialPaused
+                ? 'bg-yellow-300/20 text-yellow-100 opacity-70 shadow-yellow-950/30'
+                : isSinging
                 ? 'bg-red-500 text-white shadow-red-950/40'
-                : 'bg-emerald-500 text-slate-950 shadow-emerald-950/40'
+                : isTrialRunning
+                ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/40'
+                : 'bg-emerald-500 text-slate-950 opacity-45 shadow-emerald-950/40'
             }`}
           >
-            {isSinging ? 'STOP CANTO' : 'START CANTO'}
+            {isTrialFinished ? 'PROVA FINALIZADA' : isTrialPaused ? 'PROVA PAUSADA' : isSinging ? 'STOP CANTO' : 'START CANTO'}
           </button>
 
           <div className="mt-4 grid grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={startTrial}
-              disabled={!canStartTrial}
+              onClick={isTrialFinished ? () => resetTrial() : startTrial}
+              disabled={isTrialFinished ? !canStartNewTrial : !canStartTrial}
               className={`rounded-lg px-3 py-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-70 ${
-                hasRequiredTrialData
-                  ? 'bg-yellow-300 text-slate-950'
+                isTrialFinished
+                  ? canStartNewTrial
+                    ? 'new-trial-alert text-slate-950'
+                    : hasRequiredTrialData
+                    ? 'border border-emerald-300/40 bg-emerald-500/15 text-emerald-100'
+                    : 'missing-data-alert border border-red-200 bg-red-600 text-white shadow-lg shadow-red-950/40'
+                  : isTrialRunning
+                  ? 'border border-yellow-300/30 bg-yellow-300/10 text-yellow-100'
+                  : isTrialPaused
+                  ? 'resume-trial-alert text-slate-950'
+                  : hasRequiredTrialData
+                  ? 'start-trial-alert text-slate-950'
                   : 'missing-data-alert border border-red-200 bg-red-600 text-white shadow-lg shadow-red-950/40'
               }`}
             >
-              {hasRequiredTrialData ? 'INICIAR PROVA' : 'PREENCHA OS DADOS'}
+              {isTrialFinished
+                ? canStartNewTrial
+                  ? 'INICIAR NOVA PROVA'
+                  : hasRequiredTrialData
+                  ? 'ENVIE O RESULTADO'
+                  : 'PREENCHA OS DADOS'
+                : isTrialRunning
+                ? 'PROVA EM ANDAMENTO'
+                : isTrialPaused
+                ? 'RETOMAR PROVA'
+                : hasRequiredTrialData
+                ? 'INICIAR PROVA'
+                : 'PREENCHA OS DADOS'}
             </button>
-            <button type="button" onClick={pauseTrial} disabled={status !== 'running'} className="rounded-lg border border-white/15 bg-white/10 px-3 py-4 text-sm font-black text-white disabled:opacity-45">
+            <button type="button" onClick={pauseTrial} disabled={!isTrialRunning} className="rounded-lg border border-white/15 bg-white/10 px-3 py-4 text-sm font-black text-white disabled:opacity-45">
               PAUSAR PROVA
             </button>
             <button type="button" onClick={() => resetTrial()} className="rounded-lg border border-red-300/30 bg-red-500/15 px-3 py-4 text-sm font-black text-red-100">
               ZERAR PROVA
             </button>
           </div>
-          {status !== 'running' && (
+          {!isTrialRunning && (
             <p className="mt-3 text-center text-xs font-bold uppercase tracking-wide text-yellow-200">
-              {hasRequiredTrialData
+              {isTrialFinished
+                ? !hasRequiredTrialData
+                  ? 'Preencha o nome do canario e o tempo da prova para iniciar'
+                  : lastResultWhatsAppSent
+                  ? 'Resultado enviado com sucesso. Clique em nova prova para continuar.'
+                  : 'Prova finalizada. Envie o resultado ao chefe para liberar nova prova.'
+                : isTrialPaused
+                ? 'Prova pausada. Clique em retomar prova para continuar.'
+                : hasRequiredTrialData
                 ? 'Tudo pronto. Aguarde o chefe da roda autorizar o inicio da prova.'
                 : 'Preencha o nome do canario e o tempo da prova para iniciar'}
             </p>
@@ -1313,14 +1359,20 @@ export default function App() {
 
         <section className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
           <h2 className="text-lg font-black text-white">Configurações</h2>
+          {isTrialLocked && (
+            <p className="mt-2 rounded-md border border-yellow-300/30 bg-yellow-300/10 px-3 py-2 text-sm font-bold text-yellow-100">
+              Dados bloqueados durante a prova para evitar misturar resultados.
+            </p>
+          )}
           <div className="mt-4 grid gap-4">
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-300">Nome do canário obrigatório</span>
               <input
                 value={canaryName}
                 onChange={(event) => setCanaryName(event.target.value)}
+                disabled={isTrialLocked}
                 placeholder="Ex.: Campeão"
-                className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300"
+                className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300 disabled:cursor-not-allowed disabled:border-yellow-300/20 disabled:bg-slate-800 disabled:text-slate-400"
               />
             </label>
 
@@ -1329,7 +1381,8 @@ export default function App() {
               <select
                 value={durationMode}
                 onChange={(event) => changeDuration(event.target.value)}
-                className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300"
+                disabled={isTrialLocked}
+                className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300 disabled:cursor-not-allowed disabled:border-yellow-300/20 disabled:bg-slate-800 disabled:text-slate-400"
               >
                 {DURATIONS.map((item) => (
                   <option key={item.label} value={item.value}>{item.label}</option>
@@ -1347,7 +1400,8 @@ export default function App() {
                   value={customMinutes}
                   onChange={(event) => changeCustomMinutes(event.target.value)}
                   onBlur={finishCustomMinutesEdit}
-                  className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300"
+                  disabled={isTrialLocked}
+                  className="rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-yellow-300 disabled:cursor-not-allowed disabled:border-yellow-300/20 disabled:bg-slate-800 disabled:text-slate-400"
                 />
               </label>
             )}

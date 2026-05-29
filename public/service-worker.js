@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tropa-dos-belgas-v7'
+const CACHE_NAME = 'tropa-dos-belgas-v10'
 const APP_SHELL = ['', 'index.html', 'manifest.json', 'icon.svg', 'logo.svg', 'canary-icon.png', 'canary-icon-transparent.png']
 
 function fromScope(path) {
